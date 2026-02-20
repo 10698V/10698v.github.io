@@ -1,1 +1,0 @@
-import{initTeamPage as e}from"./team-init.guyrCxLL.js";import"./spa-router.3jzHxz5n.js";import"./roger-tiles.D74qxO8g.js";import"./role-back.DxKcLhxM.js";const t=()=>e();document.readyState!=="loading"?t():document.addEventListener("DOMContentLoaded",t,{once:!0});document.addEventListener("astro:page-load",t);
