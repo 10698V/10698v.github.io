@@ -31,6 +31,16 @@ type PhaseKey =
 
 type PhaseState = "PENDING" | "SYNCING" | "LOCKED";
 
+type TaskFactory = () => Promise<unknown>;
+
+type RegisterTaskOptions = {
+  critical?: boolean;
+  id?: string;
+  retryCount?: number;
+  isAsset?: boolean;
+  onSuccess?: () => void;
+};
+
 const PHASE_ORDER: PhaseKey[] = [
   "binding",
   "etching",
@@ -168,8 +178,11 @@ export function bootPortfolioLoader(options: LoaderOptions = {}): void {
 
   const bar = loader.querySelector<HTMLElement>("[data-loader-bar]");
   const status = loader.querySelector<HTMLElement>("[data-loader-status]");
+  const statusSub = loader.querySelector<HTMLElement>(".site-loader__status-sub");
   const track = loader.querySelector<HTMLElement>("[role='progressbar']");
   const pressStartBtn = loader.querySelector<HTMLElement>("[data-press-start]");
+  const pressStartTextEl = pressStartBtn?.querySelector<HTMLElement>(".press-start-btn__text") ?? null;
+  const pressStartSubEl = pressStartBtn?.querySelector<HTMLElement>(".press-start-btn__sub") ?? null;
   const phaseRows = Array.from(loader.querySelectorAll<HTMLElement>("[data-phase-key]"));
   const panel = loader.querySelector<HTMLElement>(".site-loader__panel");
   const sealEl = loader.querySelector<HTMLElement>(".site-loader__header-seal");
@@ -197,8 +210,88 @@ export function bootPortfolioLoader(options: LoaderOptions = {}): void {
     seal: { total: 0, done: 0, state: "PENDING" },
   };
 
+  const phaseSummary = (key: PhaseKey) => {
+    const p = phaseProgress[key];
+    const total = Math.max(0, p.total);
+    const done = Math.max(0, p.done);
+    if (p.state === "LOCKED") return "LOCKED";
+    if (p.state === "SYNCING") return `SYNCING ${Math.min(done, total)}/${Math.max(total, 1)}`;
+    if (!total) return "PENDING";
+    return `PENDING ${Math.min(done, total)}/${total}`;
+  };
+
+  const refreshPhaseRow = (key: PhaseKey) => {
+    const row = phaseElements.get(key);
+    if (!row) return;
+    const p = phaseProgress[key];
+    row.dataset.phaseStatus = p.state;
+    row.classList.toggle("is-syncing", p.state === "SYNCING");
+    row.classList.toggle("is-locked", p.state === "LOCKED");
+    row.classList.toggle("is-pending", p.state === "PENDING");
+    const stateEl = row.querySelector<HTMLElement>("[data-phase-state]");
+    if (stateEl) stateEl.textContent = phaseSummary(key);
+  };
+
+  let activePhase: PhaseKey = "binding";
+  let runningTasks = 0;
+  let failedTasks = 0;
+  let totalTasks = 0;
+  let completed = 0;
+  let totalAssets = 0;
+  let loadedAssets = 0;
+  let failedAssets = 0;
+  let activeTaskLabel = "BOOTSTRAP";
+
+  const criticalTaskMap = new Map<
+    string,
+    {
+      phase: PhaseKey;
+      label: string;
+      factory: TaskFactory;
+      retryCount: number;
+      onSuccess?: () => void;
+    }
+  >();
+  const criticalFailures = new Set<string>();
+
+  const moduleSignals = {
+    fontReady: false,
+    teamShell: false,
+    rogerTiles: false,
+    teamInit: false,
+    heroCore: false,
+    roleBack: false,
+    routeTransitions: false,
+    ripples: false,
+  };
+
   const setLoaderState = (state: "idle" | "loading" | "armed" | "done") => {
     if (document.body) document.body.dataset.loaderState = state;
+  };
+
+  const updateStatusLine = () => {
+    if (!status) return;
+    const phase = phaseProgress[activePhase];
+    const done = Math.min(phase.done, phase.total);
+    const total = Math.max(phase.total, 1);
+    if (runningTasks > 0) {
+      status.textContent = `${PHASE_LABEL[activePhase]} // ${done}/${total} // ${activeTaskLabel}`;
+      return;
+    }
+    if (phase.state === "LOCKED") {
+      status.textContent = `${PHASE_LABEL[activePhase]} // LOCKED`;
+      return;
+    }
+    status.textContent = `${PHASE_LABEL[activePhase]} // STANDBY`;
+  };
+
+  const updateStatusMeta = () => {
+    if (!statusSub) return;
+    const failPart = failedTasks > 0 ? ` FAIL ${failedTasks}` : " FAIL 0";
+    const assetPart = `ASSET ${loadedAssets}/${Math.max(totalAssets, 1)}`;
+    const phase = phaseProgress[activePhase];
+    const phasePart = `PHASE ${PHASE_LABEL[activePhase]} ${Math.min(phase.done, phase.total)}/${Math.max(phase.total, 1)}`;
+    statusSub.textContent = `${phasePart} | TASK ${completed}/${Math.max(totalTasks, 1)} RUN ${runningTasks}${failPart} | ${assetPart}`;
   };
 
   const appendLog = (line: string) => {
@@ -223,26 +316,17 @@ export function bootPortfolioLoader(options: LoaderOptions = {}): void {
   const setPhaseState = (key: PhaseKey, next: PhaseState) => {
     const state = phaseProgress[key];
     if (!state || state.state === next) return;
+    activePhase = key;
     state.state = next;
-
-    const row = phaseElements.get(key);
-    if (row) {
-      row.dataset.phaseStatus = next;
-      row.classList.toggle("is-syncing", next === "SYNCING");
-      row.classList.toggle("is-locked", next === "LOCKED");
-      row.classList.toggle("is-pending", next === "PENDING");
-      const stateEl = row.querySelector<HTMLElement>("[data-phase-state]");
-      if (stateEl) stateEl.textContent = next;
-    }
+    refreshPhaseRow(key);
 
     if (next === "LOCKED") {
       pulsePanelFlip();
       sealEl && (sealEl.textContent = `SEAL: ${PHASE_LABEL[key]} LOCKED`);
     }
 
-    if (next === "SYNCING" && status) {
-      status.textContent = `${PHASE_LABEL[key]} // SYNCING`;
-    }
+    updateStatusLine();
+    updateStatusMeta();
   };
 
   const lockPhase = (key: PhaseKey) => {
@@ -272,6 +356,8 @@ export function bootPortfolioLoader(options: LoaderOptions = {}): void {
     setRelicProgress(clamped);
     if (bar) bar.style.width = `${pct}%`;
     if (track) track.setAttribute("aria-valuenow", `${pct}`);
+    updateStatusLine();
+    updateStatusMeta();
   };
 
   const clearArmedEffects = () => {
@@ -298,10 +384,17 @@ export function bootPortfolioLoader(options: LoaderOptions = {}): void {
     finishLoader();
   };
 
-  const armStartButton = () => {
+  const armStartButton = (mode: "ready" | "force" = "ready", missing: string[] = []) => {
+    const forceMode = mode === "force";
     setLoaderState("armed");
-    if (status) status.textContent = "SUMMONING GRID READY";
-    if (sealEl) sealEl.textContent = "SEAL: READY";
+    if (status) status.textContent = forceMode ? "CRITICAL CHECK // REVIEW" : "SUMMONING GRID READY";
+    if (sealEl) sealEl.textContent = forceMode ? "SEAL: PARTIAL // FORCE REQUIRED" : "SEAL: READY";
+    if (pressStartTextEl) pressStartTextEl.textContent = forceMode ? "FORCE START" : "PRESS START";
+    if (pressStartSubEl) {
+      pressStartSubEl.textContent = forceMode
+        ? `missing: ${missing.slice(0, 2).join(" // ") || "critical links"}`
+        : "cast enter ritual";
+    }
 
     if (prophecyEl) {
       let idx = 0;
@@ -312,7 +405,7 @@ export function bootPortfolioLoader(options: LoaderOptions = {}): void {
       }, 2400);
     }
 
-    appendLog("> seal: memory lattice // stable");
+    appendLog(forceMode ? `> critical: ${missing.join(", ") || "unknown"} // manual override` : "> seal: memory lattice // stable");
     loader.classList.add("is-stable");
 
     if (pressStartBtn) {
@@ -327,7 +420,7 @@ export function bootPortfolioLoader(options: LoaderOptions = {}): void {
 
     const cleanupListeners = () => {
       if (!pressStartBtn) return;
-      pressStartBtn.removeEventListener("pointerup", onPointerActivate);
+      pressStartBtn.removeEventListener("pointerdown", onPointerActivate);
       pressStartBtn.removeEventListener("click", onClickActivate);
       pressStartBtn.removeEventListener("keydown", onButtonKey);
       window.removeEventListener("keydown", onWindowKey);
@@ -376,7 +469,7 @@ export function bootPortfolioLoader(options: LoaderOptions = {}): void {
       onActivate();
     };
 
-    pressStartBtn?.addEventListener("pointerup", onPointerActivate);
+    pressStartBtn?.addEventListener("pointerdown", onPointerActivate);
     pressStartBtn?.addEventListener("click", onClickActivate);
     pressStartBtn?.addEventListener("keydown", onButtonKey);
 
@@ -391,19 +484,134 @@ export function bootPortfolioLoader(options: LoaderOptions = {}): void {
     typeof matchMedia === "function" &&
     matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+  const waitForPredicate = (
+    predicate: () => boolean,
+    timeoutMs = 1800,
+    pollMs = 50,
+  ) =>
+    new Promise<void>((resolve, reject) => {
+      const start = performance.now();
+      const tick = () => {
+        if (predicate()) {
+          resolve();
+          return;
+        }
+        if (performance.now() - start >= timeoutMs) {
+          reject(new Error("timeout"));
+          return;
+        }
+        window.setTimeout(tick, pollMs);
+      };
+      tick();
+    });
+
+  const waitForRipplesReady = (timeoutMs = 2200) =>
+    waitForPredicate(() => Boolean((window as any).jQuery?.fn?.ripples), timeoutMs, 60);
+
+  const collectMissingCriticalSignals = () => {
+    const missing: string[] = [];
+    const fontsCheck = (document as any).fonts?.check?.('12px "Press Start 2P"') ?? true;
+    if (!moduleSignals.fontReady || !fontsCheck) missing.push("binding sigils");
+    if (!moduleSignals.teamShell) missing.push("team route shell");
+    if (!moduleSignals.rogerTiles) missing.push("roger tiles");
+    if (!moduleSignals.teamInit) missing.push("team bootstrap");
+    if (!moduleSignals.heroCore) missing.push("hero core");
+    if (!moduleSignals.roleBack) missing.push("role arcana");
+    if (!moduleSignals.routeTransitions) missing.push("route transitions");
+    if (!moduleSignals.ripples || !(window as any).jQuery?.fn?.ripples) missing.push("ripple shaders");
+    return missing;
+  };
+
+  const retryCriticalTasks = async () => {
+    if (!criticalFailures.size) return;
+    const failures = Array.from(criticalFailures);
+    for (const id of failures) {
+      const task = criticalTaskMap.get(id);
+      if (!task) continue;
+      let resolved = false;
+      for (let attempt = 1; attempt <= task.retryCount; attempt += 1) {
+        activeTaskLabel = `${task.label} [retry ${attempt}]`;
+        if (status) status.textContent = `${PHASE_LABEL[task.phase]} // RETRY ${attempt}`;
+        updateStatusMeta();
+        appendLog(`${task.label} // retry ${attempt}`);
+        try {
+          await task.factory();
+          task.onSuccess?.();
+          criticalFailures.delete(id);
+          resolved = true;
+          appendLog(`${task.label} // locked`);
+          break;
+        } catch {
+          // keep retrying
+        }
+      }
+      if (!resolved) appendLog(`${task.label} // critical-fail`);
+    }
+  };
+
   STARTING_LOGS.forEach(appendLog);
   if (prophecyEl) prophecyEl.textContent = "THE RITUAL LATTICE IS FORMING...";
+  PHASE_ORDER.forEach(refreshPhaseRow);
 
   if (!isFullIntroNeeded()) {
     setLoaderState("loading");
     loader.dataset.active = "true";
+    const quickTaskTotal = 3;
+    phaseProgress.binding.total = 1;
+    phaseProgress.etching.total = 1;
+    phaseProgress.linking.total = 1;
+    refreshPhaseRow("binding");
+    refreshPhaseRow("etching");
+    refreshPhaseRow("linking");
+    const markQuickTask = (phase: PhaseKey, label: string) => {
+      activePhase = phase;
+      activeTaskLabel = label;
+      phaseProgress[phase].done = Math.min(phaseProgress[phase].total, phaseProgress[phase].done + 1);
+      refreshPhaseRow(phase);
+      completed = Math.min(quickTaskTotal, completed + 1);
+      updateProgress(0.45 + (completed / quickTaskTotal) * 0.45);
+    };
+
+    totalTasks = quickTaskTotal;
     setPhaseState("binding", "SYNCING");
-    updateProgress(0.45);
+    updateProgress(0.15);
 
     const quickTasks: Promise<void>[] = [];
     const fontReady = (document as any).fonts?.ready as Promise<unknown> | undefined;
-    if (fontReady) quickTasks.push(fontReady.then(() => {}).catch(() => {}));
-    quickTasks.push(preloadTeamPage().catch(() => {}));
+    if (fontReady) {
+      quickTasks.push(
+        fontReady
+          .then(() => {
+            moduleSignals.fontReady = true;
+            markQuickTask("binding", "font sigils");
+          })
+          .catch(() => {
+            markQuickTask("binding", "font sigils fallback");
+          }),
+      );
+    } else {
+      markQuickTask("binding", "font sigils fallback");
+    }
+    quickTasks.push(
+      preloadTeamPage()
+        .then(() => {
+          moduleSignals.teamShell = true;
+          markQuickTask("etching", "team route shell");
+        })
+        .catch(() => {
+          markQuickTask("etching", "team route shell fallback");
+        }),
+    );
+    quickTasks.push(
+      waitForRipplesReady(1200)
+        .then(() => {
+          moduleSignals.ripples = true;
+          markQuickTask("linking", "ripple shaders");
+        })
+        .catch(() => {
+          markQuickTask("linking", "ripple shaders fallback");
+        }),
+    );
 
     Promise.all(quickTasks)
       .then(() => new Promise<void>((r) => setTimeout(r, prefersReduced ? 90 : 280)))
@@ -418,32 +626,67 @@ export function bootPortfolioLoader(options: LoaderOptions = {}): void {
 
   setLoaderState("loading");
   updateProgress(0);
+  updateStatusMeta();
 
   const assets = Array.from(new Set((options.assets ?? []).filter(Boolean)));
-  const taskList: Promise<void>[] = [];
-  let completed = 0;
-  let totalTasks = 0;
+  totalAssets = assets.length;
 
-  const registerTask = (phase: PhaseKey, label: string, promise: Promise<unknown>) => {
+  const taskList: Promise<void>[] = [];
+
+  const registerTask = (
+    phase: PhaseKey,
+    label: string,
+    factory: TaskFactory,
+    opts: RegisterTaskOptions = {},
+  ) => {
+    const taskId = opts.id ?? `${phase}:${label}`;
     totalTasks += 1;
     phaseProgress[phase].total += 1;
+    refreshPhaseRow(phase);
+    updateStatusMeta();
 
     if (phaseProgress[phase].state === "PENDING") {
       const hasSyncing = PHASE_ORDER.some((key) => phaseProgress[key].state === "SYNCING");
       if (!hasSyncing) setPhaseState(phase, "SYNCING");
     }
 
+    if (opts.critical) {
+      criticalTaskMap.set(taskId, {
+        phase,
+        label,
+        factory,
+        retryCount: Math.max(1, opts.retryCount ?? 2),
+        onSuccess: opts.onSuccess,
+      });
+    }
+
     taskList.push(
-      promise
+      Promise.resolve()
         .then(() => {
+          runningTasks += 1;
+          activePhase = phase;
+          activeTaskLabel = label;
+          updateStatusLine();
+          updateStatusMeta();
+          appendLog(`${label} // syncing`);
+          return factory();
+        })
+        .then(() => {
+          opts.onSuccess?.();
+          if (opts.isAsset) loadedAssets += 1;
           appendLog(`${label} // ok`);
         })
         .catch(() => {
+          failedTasks += 1;
+          if (opts.isAsset) failedAssets += 1;
+          if (opts.critical) criticalFailures.add(taskId);
           appendLog(`${label} // fallback`);
         })
         .then(() => {
+          runningTasks = Math.max(0, runningTasks - 1);
           completed += 1;
           phaseProgress[phase].done += 1;
+          refreshPhaseRow(phase);
           updateProgress(completed / Math.max(1, totalTasks));
 
           if (phaseProgress[phase].done >= phaseProgress[phase].total) {
@@ -457,22 +700,55 @@ export function bootPortfolioLoader(options: LoaderOptions = {}): void {
 
   const fontReady = (document as any).fonts?.ready as Promise<unknown> | undefined;
   if (fontReady) {
-    registerTask("binding", "> bind: type sigils", fontReady);
+    registerTask("binding", "> bind: type sigils", () => fontReady, {
+      critical: true,
+      id: "binding:fonts",
+      onSuccess: () => {
+        moduleSignals.fontReady = true;
+      },
+    });
   }
 
-  registerTask("etching", "> preload: team route shell", preloadTeamPage());
-  registerTask("etching", "> bind: roger tiles module", import("../lib/roger-tiles.ts"));
-  registerTask("etching", "> bind: team scene bootstrap", import("../scripts/team-init.ts"));
+  registerTask("etching", "> preload: team route shell", () => preloadTeamPage(), {
+    critical: true,
+    id: "etching:team-shell",
+    onSuccess: () => {
+      moduleSignals.teamShell = true;
+    },
+  });
+  registerTask("etching", "> bind: roger tiles module", () => import("../lib/roger-tiles.ts"), {
+    critical: true,
+    id: "etching:roger-tiles",
+    onSuccess: () => {
+      moduleSignals.rogerTiles = true;
+    },
+  });
+  registerTask("etching", "> bind: team scene bootstrap", () => import("../scripts/team-init.ts"), {
+    critical: true,
+    id: "etching:team-init",
+    onSuccess: () => {
+      moduleSignals.teamInit = true;
+    },
+  });
 
   for (const url of assets) {
-    registerTask("charging", `> preload: ${url.split("/").pop() ?? "asset"}`, preloadImage(url));
+    registerTask("charging", `> preload: ${url.split("/").pop() ?? "asset"}`, () => preloadImage(url), {
+      isAsset: true,
+    });
   }
-  registerTask("charging", "> preload: hero core module", import("../lib/hero-block.ts"));
+  registerTask("charging", "> preload: hero core module", () => import("../lib/hero-block.ts"), {
+    critical: true,
+    id: "charging:hero-core",
+    onSuccess: () => {
+      moduleSignals.heroCore = true;
+    },
+  });
 
   registerTask(
     "calibrating",
     "> compile: world shader cache",
-    import("three").then((THREE) => {
+    () =>
+      import("three").then((THREE) => {
       try {
         const tmpRenderer = new THREE.WebGLRenderer({
           alpha: true,
@@ -493,21 +769,41 @@ export function bootPortfolioLoader(options: LoaderOptions = {}): void {
       } catch {
         // ignore
       }
-    }),
+      }),
   );
 
-  registerTask("linking", "> bind: role arcana modules", import("../scripts/role-back.ts"));
-  registerTask("linking", "> link: route transition matrix", import("../lib/route-transitions.ts"));
-  registerTask("linking", "> link: gsap channel", import("gsap"));
-  registerTask("linking", "> link: scroll trigger channel", import("gsap/ScrollTrigger"));
-  registerTask("linking", "> link: lenis channel", import("@studio-freight/lenis"));
+  registerTask("linking", "> bind: role arcana modules", () => import("../scripts/role-back.ts"), {
+    critical: true,
+    id: "linking:role-back",
+    onSuccess: () => {
+      moduleSignals.roleBack = true;
+    },
+  });
+  registerTask("linking", "> link: route transition matrix", () => import("../lib/route-transitions.ts"), {
+    critical: true,
+    id: "linking:route-transitions",
+    onSuccess: () => {
+      moduleSignals.routeTransitions = true;
+    },
+  });
+  registerTask("linking", "> bind: ripple shaders", () => waitForRipplesReady(2200), {
+    critical: true,
+    id: "linking:ripples-ready",
+    onSuccess: () => {
+      moduleSignals.ripples = true;
+    },
+    retryCount: 3,
+  });
+  registerTask("linking", "> link: gsap channel", () => import("gsap"));
+  registerTask("linking", "> link: scroll trigger channel", () => import("gsap/ScrollTrigger"));
+  registerTask("linking", "> link: lenis channel", () => import("@studio-freight/lenis"));
 
   Promise.all(taskList).then(() => {
     const elapsed = performance.now() - startTs;
     const minDuration = Math.max(0, options.minDuration ?? 0);
     const waitMs = Math.max(0, minDuration - elapsed);
 
-    window.setTimeout(() => {
+    window.setTimeout(async () => {
       PHASE_ORDER.forEach((phase) => {
         if (phase === "seal") return;
         const p = phaseProgress[phase];
@@ -516,7 +812,13 @@ export function bootPortfolioLoader(options: LoaderOptions = {}): void {
 
       setPhaseState("seal", "SYNCING");
       appendLog("> seal: integrity lattice // syncing");
-      window.setTimeout(() => {
+      window.setTimeout(async () => {
+        await retryCriticalTasks();
+        const missing = collectMissingCriticalSignals();
+        if (missing.length) {
+          if (status) status.textContent = "CRITICAL LINKS // PARTIAL";
+          appendLog(`> missing critical: ${missing.join(", ")}`);
+        }
         lockPhase("seal");
         loader.classList.add("is-stable");
         setRelicProgress(1);
@@ -525,7 +827,7 @@ export function bootPortfolioLoader(options: LoaderOptions = {}): void {
         if (prefersReduced) {
           enterSite();
         } else {
-          armStartButton();
+          armStartButton(missing.length ? "force" : "ready", missing);
         }
       }, 140);
     }, waitMs);
