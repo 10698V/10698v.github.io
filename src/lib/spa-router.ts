@@ -14,6 +14,7 @@ let isNavigating = false;
 let routerBooted = false;
 let linkListenerBound = false;
 let queuedNavigation: { href: string; opts: NavigateOptions } | null = null;
+let currentPathname = "/";
 
 const normalizePath = (pathname: string) => {
   if (!pathname) return "/";
@@ -202,6 +203,7 @@ export async function navigateSoft(href: string, opts: NavigateOptions = {}) {
     shell.innerHTML = shellHtml;
     document.title = title;
     updateBodyRoute(pathname);
+    currentPathname = pathname;
     const stateMethod = opts.replaceState ? "replaceState" : "pushState";
     window.history[stateMethod]({}, "", `${url.pathname}${search}`);
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -233,11 +235,18 @@ export function bootSpaRouter() {
   if (routerBooted) return;
   routerBooted = true;
 
+  currentPathname = normalizePath(window.location.pathname);
   seedInitialCache();
   void runPageInit(window.location.pathname);
 
   window.addEventListener("popstate", () => {
-    navigateSoft(window.location.pathname + window.location.search, { replaceState: true }).catch(() => {
+    const nextPath = normalizePath(window.location.pathname);
+    const opts: NavigateOptions = {
+      replaceState: true,
+      fromTeam: isTeamRoute(currentPathname) && isHomeRoute(nextPath),
+      fromHero: isHomeRoute(currentPathname) && isTeamRoute(nextPath),
+    };
+    navigateSoft(window.location.pathname + window.location.search, opts).catch(() => {
       window.location.reload();
     });
   });

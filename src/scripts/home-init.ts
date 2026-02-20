@@ -8,6 +8,7 @@ let scrollTriggerRegistered = false;
 let idlePrefetchScheduled = false;
 let homeCleanupBound = false;
 let homePageShowBound = false;
+let heroRecoveryTimers: number[] = [];
 
 export function isHomeRoute(pathname: string = typeof window !== "undefined" ? window.location.pathname : "") {
   return pathname === "" || pathname === "/" || pathname === "/index" || pathname === "/index.html";
@@ -71,12 +72,41 @@ function runReveals(gsap: any) {
 }
 
 function cleanupHome() {
+  while (heroRecoveryTimers.length) {
+    const id = heroRecoveryTimers.pop();
+    if (typeof id === "number") window.clearTimeout(id);
+  }
   cleanupHeroStage();
   // We could also kill ScrollTriggers here if we wanted to be thorough
 }
 
+function scheduleHeroRecovery() {
+  const ensure = () => {
+    if (!isHomeRoute()) return;
+    const shell = document.querySelector<HTMLElement>("[data-hero-shell]");
+    const canvas = document.getElementById("hero3d") as HTMLCanvasElement | null;
+    if (!shell || !canvas) return;
+    if (!shell.classList.contains("hero-shell--active")) {
+      shell.classList.add("hero-shell--active");
+      initHeroStage();
+      return;
+    }
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width < 16 || rect.height < 16) {
+      initHeroStage();
+    }
+  };
+
+  const delays = [120, 420, 950, 1600];
+  heroRecoveryTimers.forEach((id) => window.clearTimeout(id));
+  heroRecoveryTimers = delays.map((ms) => window.setTimeout(ensure, ms));
+}
+
 async function runHomeScripts(opts?: { fromTeam?: boolean }) {
   if (typeof window === "undefined" || typeof document === "undefined") return;
+
+  document.documentElement.classList.remove("hero-transition");
+  delete document.body?.dataset.enterFromHero;
 
   if (!homeCleanupBound) {
     document.addEventListener("astro:before-swap", cleanupHome);
@@ -92,6 +122,7 @@ async function runHomeScripts(opts?: { fromTeam?: boolean }) {
   }
 
   initHeroStage();
+  scheduleHeroRecovery();
   prewarmHeroMask("/logo.png");
 
   setupHeroToTeamTransition({
