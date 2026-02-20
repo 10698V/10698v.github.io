@@ -246,6 +246,17 @@ export function bootSpaRouter() {
       fromTeam: isTeamRoute(currentPathname) && isHomeRoute(nextPath),
       fromHero: isHomeRoute(currentPathname) && isTeamRoute(nextPath),
     };
+    // Browser back/swipe from Team -> Home has occasional blank-home race in SPA mode.
+    // Use a hard navigation for this single path to guarantee Hero boot correctness.
+    if (opts.fromTeam) {
+      try {
+        window.sessionStorage.setItem("__prim3_from_team__", "1");
+      } catch {
+        // no-op
+      }
+      window.location.assign(`${window.location.pathname}${window.location.search}`);
+      return;
+    }
     navigateSoft(window.location.pathname + window.location.search, opts).catch(() => {
       window.location.reload();
     });
