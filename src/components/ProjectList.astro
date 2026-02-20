@@ -1,0 +1,35 @@
+---
+const projects = [
+  {
+    title: "Autonomous Routines",
+    desc: "Path planning + sensor fusion for consistent skills runs.",
+    link: "https://github.com/your-org/optimus-auton"
+  },
+  {
+    title: "Driver Control",
+    desc: "Tele-op command mapping with safety guards & rumble haptics.",
+    link: "https://github.com/your-org/optimus-teleop"
+  }
+];
+---
+<section id="code" class="py-16 px-6 md:px-10">
+  <h2 class="text-3xl md:text-4xl font-bold text-center mb-8 neon-text">Code & Projects</h2>
+  <p class="max-w-2xl mx-auto text-center text-neutral-300 mb-10">
+    A peek at the code powering Optimus Prim3. View repos for full context.
+  </p>
+
+  <div class="max-w-4xl mx-auto grid md:grid-cols-2 gap-6">
+    {projects.map((p) => (
+      <a href={p.link} target="_blank" rel="noreferrer"
+         class="group block bg-neutral-900/70 border border-neutral-800 rounded-2xl p-5 hover:shadow-neon transition-shadow">
+        <h3 class="font-mono text-neon-purple text-lg">{p.title}</h3>
+        <pre class="mt-3 text-sm bg-black/60 border border-neutral-800 rounded-lg p-3 overflow-x-auto">
+<code>// {p.desc}
+void example() {'{'}
+  // Replace with real snippet / image
+{'}'}</code></pre>
+        <div class="mt-2 text-neutral-400 group-hover:text-white">Open on GitHub -></div>
+      </a>
+    ))}
+  </div>
+</section>

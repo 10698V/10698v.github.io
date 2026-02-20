@@ -1,0 +1,17 @@
+﻿---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Hero from "../components/Hero.astro";
+---
+
+<BaseLayout showQuicklink={true}>
+    <Hero />
+</BaseLayout>
+
+<script>
+    import { initHomePage } from "../scripts/home-init";
+    initHomePage();
+</script>
+
+
+
+

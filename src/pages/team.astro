@@ -1,0 +1,57 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { team } from "../data/team";
+import RippleTile from "../components/RippleTile.astro";
+---
+
+<BaseLayout>
+        <!-- styles moved to global.css -->
+
+    <main class="team-page" data-lenis-prevent data-summon-pending="1">
+        <section class="summoning-field">
+            <div class="team-header header-content">
+                <div class="team-header__row">
+                    <div>
+                        <p class="text-xs tracking-[0.35em] text-white/60">TEAM 10698V PUSHBACK ERA</p>
+                        <h1>Summoning Grid</h1>
+                    </div>
+                    <a href="/" class="go-home-btn">
+                        <span>Go&nbsp;Home</span>
+                    </a>
+                </div>
+                <p>
+                    Meet the crew keeping 10698V running. Tap any profile to access their role, specs, and current caffeine to blood ratio.
+                </p>
+            </div>
+
+            <div class="team-grid">
+                {
+                    team.map((m) => (
+                        <RippleTile
+                            src={m.avatar ?? "/placeholder-avatar.jpg"}
+                            portraitPx={m.portraitPx}
+                            portraitTrue={m.portraitTrue ?? m.avatar}
+                            alt={m.name}
+                            name={m.name}
+                            badge={m.title}
+                            roleId={m.roleId}
+                            roles={m.roles}
+                            experienceYears={m.experienceYears}
+                            grade={m.grade}
+                        />
+                    ))
+                }
+            </div>
+        </section>
+    </main>
+</BaseLayout>
+
+<script>
+    import { initTeamPage } from "../scripts/team-init";
+
+    const start = () => initTeamPage();
+    if (document.readyState !== "loading") start();
+    else document.addEventListener("DOMContentLoaded", start, { once: true });
+    document.addEventListener("astro:page-load", start);
+</script>
+

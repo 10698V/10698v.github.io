@@ -1,0 +1,126 @@
+﻿---
+/* 3D Block Hero â€“ FROSTED GLASS VERSION */
+const IMAGE_URL = "/logo.png";
+const COLS = 28;
+const ROWS = 18;
+const WIDTH = 12;
+const HEIGHT = (ROWS / COLS) * WIDTH;
+---
+
+<section class="hero-shell w-full overflow-hidden" data-hero-shell style="background-color: #050819;">
+    <div class="hero-stage" data-hero-stage>
+        <canvas
+            id="hero3d"
+            class="hero-stage__canvas"
+            tabindex="0"
+            role="link"
+            aria-label="Navigate to the team page"
+            data-image={IMAGE_URL}
+            data-cols={COLS}
+            data-rows={ROWS}
+            data-width={WIDTH}
+            data-height={HEIGHT}></canvas>
+    </div>
+</section>
+
+<script type="module">
+    import { initHeroStage } from "/src/scripts/hero-stage.ts";
+    initHeroStage();
+</script>
+
+<style>
+    .hero-shell {
+        position: relative;
+        min-height: 100vh;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+        gap: clamp(0.5rem, 3vh, 1.5rem);
+        padding-bottom: clamp(3rem, 8vh, 6rem);
+        background:
+            radial-gradient(circle at 10% 20%, rgba(74, 118, 255, 0.25), transparent 55%),
+            radial-gradient(circle at 85% 25%, rgba(209, 87, 255, 0.22), transparent 60%),
+            linear-gradient(140deg, #030810, #080621 52%, #0b0f2b);
+        opacity: 0;
+        transform: translateY(40px) scale(0.985);
+        transition:
+            opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+            transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+        overflow: visible;
+    }
+    .hero-shell--active {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    @supports (min-height: 100svh) {
+        .hero-shell {
+            min-height: 100svh;
+        }
+    }
+    @media (max-width: 640px) {
+        .hero-shell {
+            min-height: calc(100svh + 60px);
+        }
+    }
+
+    .hero-stage {
+        width: 100vw;
+        height: 100vh;
+        position: relative;
+        border-radius: 0;
+        overflow: visible;
+        border: none;
+        background: transparent;
+        pointer-events: auto;
+        cursor: pointer;
+    }
+    .hero-stage__link,
+    .hero-stage__canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+    }
+    .hero-stage__canvas {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        mix-blend-mode: screen;
+        filter: saturate(1.15) brightness(1.12);
+        border-radius: 0;
+        pointer-events: auto;
+        transform: translateZ(0);
+        transition: filter 0.3s ease;
+        isolation: isolate;
+        background: transparent;
+        mask-image: none;
+        -webkit-mask-image: none;
+    }
+
+    .hero-reflection {
+        width: min(1400px, 90vw);
+        height: clamp(50px, 8vh, 120px);
+        background: linear-gradient(90deg, rgba(61, 130, 255, 0.25), rgba(198, 88, 255, 0.2));
+        filter: saturate(1.2) blur(2px);
+        opacity: 0.55;
+        transform: translateY(-0.25rem);
+        mix-blend-mode: screen;
+        border-radius: clamp(3rem, 5vw, 5.6rem);
+        mask-image: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0) 70%);
+        -webkit-mask-image: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0) 70%);
+        box-shadow: 0 20px 70px rgba(0, 0, 0, 0.25);
+    }
+    @media (max-width: 640px) {
+        .hero-stage {
+            width: 100vw;
+            height: clamp(320px, 60vh, 520px);
+        }
+        .hero-reflection {
+            width: min(92vw, 640px);
+            height: clamp(60px, 14vh, 140px);
+        }
+    }
+
+</style>
+

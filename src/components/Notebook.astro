@@ -1,0 +1,24 @@
+---
+const entries = [
+  { date: "2025-01-12", title: "Subsystem kickoff", text: "Chassis CAD + role assignment (builder / coder / driver)." },
+  { date: "2025-02-05", title: "Auton v1", text: "Line-up routine + IMU heading lock; began path tuning." },
+  { date: "2025-03-03", title: "Intake rev-B", text: "Switched to compliant wheels; less jamming under load." }
+];
+---
+<section id="notebook" class="py-16 px-6 md:px-10 bg-neutral-900/60">
+  <h2 class="text-3xl md:text-4xl font-bold text-center mb-8 neon-text">Engineering Notebook</h2>
+
+  <ol class="max-w-3xl mx-auto space-y-6">
+    {entries.map((e) => (
+      <li class="bg-neutral-900/80 border border-neutral-800 rounded-2xl p-5">
+        <div class="text-neon-purple font-mono text-sm">{e.date}</div>
+        <div class="text-xl font-semibold mt-1">{e.title}</div>
+        <p class="text-neutral-300 mt-1">{e.text}</p>
+      </li>
+    ))}
+  </ol>
+
+  <div class="text-center mt-8">
+    <a href="#" class="underline text-neon-purple/90 hover:text-white">View full notebook (PDF) -></a>
+  </div>
+</section>

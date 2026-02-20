@@ -1,0 +1,2187 @@
+/* File: src/styles/global.css */
+/* Import Tailwind base styles, components, and utilities: */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Smooth scroll behavior (Lenis will override native scroll, but this is a fallback) */
+:root {
+  --cursor-xp: 50;
+  --cursor-yp: 50;
+  --warp-xp: 50;
+  --warp-yp: 50;
+  --warp-strength: 0;
+  --warp-edge-left: 0vw;
+  --warp-edge-right: 0vw;
+  --warp-edge-top: 0vh;
+  --warp-edge-bottom: 0vh;
+  --warp-bulge: 0px;
+}
+
+html {
+  min-height: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  background-color: #050819;
+  background-image:
+    radial-gradient(circle at 18% 22%, rgba(52, 136, 255, 0.28), transparent 46%),
+    radial-gradient(circle at 82% 10%, rgba(0, 255, 209, 0.22), transparent 45%),
+    radial-gradient(circle at 10% 90%, rgba(157, 77, 242, 0.18), transparent 50%),
+    linear-gradient(140deg, #020513 0%, #050c20 52%, #03040d 100%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  color: #f8fbff;
+
+  /* Smooth background transition for hero->team navigation */
+  transition: background-color 1.2s ease-in-out, background-image 1.2s ease-in-out;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: -10%;
+  background:
+    radial-gradient(circle at 15% 25%, rgba(64, 203, 255, 0.35), transparent 55%),
+    radial-gradient(circle at 80% 8%, rgba(0, 255, 209, 0.3), transparent 50%),
+    linear-gradient(130deg, rgba(8, 16, 36, 0.9), rgba(5, 10, 28, 0.95));
+  filter: blur(40px);
+  opacity: 0.8;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Hide scrollbar but allow scrolling for better immersion */
+html {
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE/Edge */
+}
+
+html::-webkit-scrollbar {
+  display: none;
+  /* Chrome/Safari/Opera */
+}
+
+body {
+  overflow-x: hidden;
+  /* Prevent horizontal scroll */
+}
+
+
+#astro-root,
+body>div {
+  background: transparent;
+}
+
+/* Body fade-out for page transition (used in BaseLayout script) */
+body.fade-out {
+  transition: opacity 0.3s ease-out;
+  opacity: 0;
+}
+
+.interactive-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.interactive-bg--ready {
+  opacity: 1;
+}
+
+.interactive-bg__gradient,
+.interactive-bg__sheen {
+  position: absolute;
+  inset: -12%;
+}
+
+.interactive-bg__gradient {
+  background:
+    radial-gradient(circle at calc(var(--cursor-xp, 50) * 1%) calc(var(--cursor-yp, 50) * 1%), rgba(0, 242, 255, 0.4), transparent 22%),
+    radial-gradient(circle at calc(var(--cursor-xp, 50) * 0.55 * 1%) calc(var(--cursor-yp, 50) * 0.85 * 1%), rgba(157, 77, 242, 0.22), transparent 30%),
+    linear-gradient(125deg, rgba(6, 14, 32, 0.92) 5%, rgba(10, 24, 48, 0.9) 55%, rgba(4, 8, 20, 0.93));
+  filter: blur(26px);
+  transform: translate3d(calc((var(--cursor-xp, 50) - 50) * 0.013vw), calc((var(--cursor-yp, 50) - 50) * 0.02vh), 0);
+  transition: transform 0.25s ease;
+}
+
+.interactive-bg__sheen {
+  background:
+    radial-gradient(circle at calc(var(--cursor-xp, 50) * 0.9 * 1%) calc(var(--cursor-yp, 50) * 1.1 * 1%), rgba(173, 255, 255, 0.15), transparent 24%);
+  filter: blur(18px);
+  opacity: 0.46;
+  transform: translate3d(calc((var(--cursor-xp, 50) - 50) * -0.013vw), calc((var(--cursor-yp, 50) - 50) * -0.017vh), 0);
+  transition: transform 0.3s ease;
+}
+
+.site-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(1.02);
+  transition:
+    opacity 280ms ease-out,
+    transform 280ms ease-out;
+}
+
+.site-loader[data-active="true"] {
+  pointer-events: auto;
+  opacity: 1;
+  transform: scale(1);
+}
+
+.site-loader__backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(40, 255, 213, 0.22), transparent 55%),
+    radial-gradient(circle at 80% 80%, rgba(255, 0, 170, 0.26), transparent 60%),
+    radial-gradient(circle at 50% 0%, rgba(88, 189, 255, 0.28), transparent 65%),
+    #020712;
+}
+
+.site-loader__panel {
+  position: absolute;
+  inset: 50%;
+  transform: translate(-50%, -50%);
+  width: min(92vw, 980px);
+  height: min(82vh, 720px);
+  padding: clamp(1.8rem, 3vw, 2.6rem);
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgba(5, 10, 24, 0.96), rgba(4, 8, 20, 0.98)),
+    radial-gradient(circle at 50% 0%, rgba(90, 210, 255, 0.3), transparent 60%);
+  border: 2px solid rgba(171, 230, 255, 0.3);
+  box-shadow:
+    0 0 60px rgba(0, 0, 0, 0.9),
+    0 0 140px rgba(28, 190, 255, 0.35),
+    0 0 180px rgba(255, 0, 200, 0.24);
+  overflow: hidden;
+}
+
+.site-loader__panel::before {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background-image:
+    linear-gradient(120deg,
+      rgba(255, 255, 255, 0.08) 1px,
+      transparent 1px),
+    linear-gradient(210deg,
+      rgba(255, 255, 255, 0.06) 1px,
+      transparent 1px);
+  background-size: 34px 34px;
+  opacity: 0.18;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.site-loader__panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(to bottom,
+      rgba(255, 255, 255, 0.08),
+      transparent 60%);
+  mix-blend-mode: soft-light;
+  opacity: 0.16;
+  transform: translateY(-100%);
+  animation: loader-scan 3.2s linear infinite;
+}
+
+@keyframes loader-scan {
+  0% {
+    transform: translateY(-100%);
+  }
+
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+.site-loader__header {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: clamp(1.4rem, 2.6vw, 2rem);
+  font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: rgba(208, 235, 255, 0.96);
+  font-size: clamp(0.72rem, 1.3vw, 0.85rem);
+}
+
+.site-loader__header-label {
+  opacity: 0.9;
+}
+
+.site-loader__header-percent {
+  font-size: clamp(0.8rem, 1.6vw, 1rem);
+  color: #5cf6ff;
+}
+
+.site-loader__body {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: clamp(1.6rem, 3vw, 2.4rem);
+  align-items: center;
+  margin-bottom: clamp(1.8rem, 3vw, 2.6rem);
+}
+
+.site-loader__sigil {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  max-width: 320px;
+  margin-inline: auto;
+}
+
+.site-loader__sigil-ring,
+.site-loader__sigil-core {
+  position: absolute;
+  inset: 10%;
+  border-radius: 999px;
+}
+
+.site-loader__sigil-ring {
+  border: 2px solid rgba(120, 220, 255, 0.8);
+  box-shadow:
+    0 0 22px rgba(92, 246, 255, 0.75),
+    0 0 56px rgba(0, 255, 213, 0.4);
+  animation: loader-sigil-spin 14s linear infinite;
+}
+
+.site-loader__sigil-ring--outer {
+  inset: 6%;
+}
+
+.site-loader__sigil-ring--inner {
+  inset: 22%;
+  border-style: dashed;
+  opacity: 0.8;
+  animation-duration: 18s;
+  animation-direction: reverse;
+}
+
+.site-loader__sigil-ring::before,
+.site-loader__sigil-ring::after {
+  content: "";
+  position: absolute;
+  inset: 18%;
+  border-radius: inherit;
+  border: 1px dashed rgba(160, 255, 255, 0.65);
+  mix-blend-mode: screen;
+}
+
+.site-loader__sigil-core {
+  inset: 24%;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(80, 250, 255, 0.5), transparent 55%),
+    radial-gradient(circle at 50% 70%, rgba(255, 0, 200, 0.46), transparent 70%);
+  opacity: 0.9;
+  filter: blur(6px);
+}
+
+.site-loader__sigil-glyphs {
+  position: absolute;
+  inset: 0;
+  display: block;
+  animation: loader-glyph-spin 12s linear infinite reverse;
+}
+
+.site-loader__sigil-glyphs span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-origin: center;
+  color: rgba(150, 240, 255, 0.9);
+  text-shadow:
+    0 0 12px rgba(92, 246, 255, 0.8),
+    0 0 22px rgba(0, 255, 213, 0.6),
+    0 0 28px rgba(255, 60, 255, 0.4);
+  font-family: "Press Start 2P", "IBM Plex Mono", monospace;
+  font-size: clamp(0.65rem, 1.9vw, 0.9rem);
+  letter-spacing: 0.15em;
+  opacity: 0.8;
+}
+
+.site-loader__sigil-glyphs span:nth-child(1) {
+  transform: rotate(0deg) translateY(-48%);
+}
+
+.site-loader__sigil-glyphs span:nth-child(2) {
+  transform: rotate(60deg) translateY(-48%);
+}
+
+.site-loader__sigil-glyphs span:nth-child(3) {
+  transform: rotate(120deg) translateY(-48%);
+}
+
+.site-loader__sigil-glyphs span:nth-child(4) {
+  transform: rotate(180deg) translateY(-48%);
+}
+
+.site-loader__sigil-glyphs span:nth-child(5) {
+  transform: rotate(240deg) translateY(-48%);
+}
+
+.site-loader__sigil-glyphs span:nth-child(6) {
+  transform: rotate(300deg) translateY(-48%);
+}
+
+@keyframes loader-sigil-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes loader-glyph-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(-360deg);
+  }
+}
+
+.site-loader__status {
+  position: relative;
+  font-family: var(--font-mono, "IBM Plex Mono", ui-monospace);
+  color: rgba(211, 236, 255, 0.96);
+}
+
+.site-loader__status-line {
+  font-size: clamp(0.78rem, 1.4vw, 0.9rem);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin-bottom: 0.6rem;
+  color: #9cf2ff;
+}
+
+.site-loader__status-sub {
+  font-size: clamp(0.72rem, 1.2vw, 0.84rem);
+  opacity: 0.75;
+}
+
+.site-loader__meter {
+  position: relative;
+}
+
+.site-loader__meter-track {
+  position: relative;
+  height: 18px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 50% 50%, rgba(8, 20, 40, 0.95), rgba(3, 9, 24, 1));
+  box-shadow:
+    inset 0 0 0 1px rgba(140, 220, 255, 0.25),
+    0 0 14px rgba(0, 0, 0, 0.9);
+  overflow: hidden;
+}
+
+.site-loader__meter-fill {
+  position: absolute;
+  inset: 2px;
+  width: 0%;
+  border-radius: inherit;
+  background-image: linear-gradient(90deg, #29ffd4, #60f3ff, #ff3cff);
+  box-shadow:
+    0 0 22px rgba(96, 243, 255, 0.9),
+    0 0 58px rgba(255, 60, 255, 0.7);
+  transform-origin: left center;
+  transition: width 140ms ease-out;
+}
+
+.site-loader__meter-glow {
+  position: absolute;
+  inset: -40%;
+  background: radial-gradient(circle at 10% 50%, rgba(89, 241, 255, 0.45), transparent 55%);
+  opacity: 0.45;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.quicklings {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  transform: translate(12px, -10px);
+  z-index: 40;
+}
+
+.quickling {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.9rem 1.4rem;
+  border-radius: 999px;
+  background: rgba(7, 8, 14, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 10px 35px rgba(0, 0, 0, 0.45),
+    inset 0 1px 12px rgba(255, 255, 255, 0.08);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: white;
+  text-decoration: none;
+  backdrop-filter: blur(10px);
+  transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+}
+
+.quickling__label {
+  position: relative;
+  z-index: 1;
+}
+
+.quickling__pulse {
+  position: absolute;
+  inset: 10%;
+  border-radius: inherit;
+  background: radial-gradient(circle, rgba(157, 77, 242, 0.35), transparent 65%);
+  animation: quicklingPulse 3s ease-in-out infinite;
+  opacity: 0;
+}
+
+.quickling:hover,
+.quickling:focus-visible {
+  transform: translate(-6px, 4px) scale(1.03);
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(12, 14, 26, 0.9);
+}
+
+.quickling:hover .quickling__pulse,
+.quickling:focus-visible .quickling__pulse {
+  opacity: 1;
+}
+
+@media (max-width: 640px) {
+  .quicklings {
+    top: auto;
+    bottom: 1.25rem;
+    left: 1rem;
+    right: 1rem;
+    transform: none;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .quickling {
+    width: 100%;
+    justify-content: center;
+    font-size: 0.72rem;
+    padding: 0.85rem 1.1rem;
+  }
+}
+
+@keyframes quicklingPulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+
+  40% {
+    opacity: 0.6;
+  }
+
+  100% {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+}
+
+.interactive-panel {
+  position: relative;
+  overflow: hidden;
+  border-radius: 2rem;
+  transform-style: preserve-3d;
+  --panel-warp: var(--warp-strength, 0);
+  transform:
+    translate3d(calc((var(--warp-xp, 50) - 50) * 0.04vw * var(--panel-warp)),
+      calc((var(--warp-yp, 50) - 50) * 0.06vh * var(--panel-warp)),
+      0) rotateX(calc((var(--warp-yp, 50) - 50) * -0.08deg * var(--panel-warp))) rotateY(calc((var(--warp-xp, 50) - 50) * 0.08deg * var(--panel-warp)));
+  clip-path: polygon(calc(0% + var(--warp-edge-left, 0vw)) calc(0% + var(--warp-edge-top, 0vh)),
+      calc(100% - var(--warp-edge-right, 0vw)) calc(0% - var(--warp-edge-top, 0vh)),
+      calc(100% - var(--warp-edge-right, 0vw)) calc(100% - var(--warp-edge-bottom, 0vh)),
+      calc(0% + var(--warp-edge-left, 0vw)) calc(100% + var(--warp-edge-bottom, 0vh)));
+  transition: transform 0.45s cubic-bezier(0.21, 0.61, 0.35, 1), clip-path 0.45s ease;
+  filter: drop-shadow(0 25px 80px rgba(0, 0, 0, 0.45)) saturate(calc(1 + var(--panel-warp) * 0.4));
+}
+
+.interactive-panel::before,
+.interactive-panel::after {
+  content: "";
+  position: absolute;
+  inset: -35%;
+  pointer-events: none;
+  transition: transform 0.32s ease, opacity 0.32s ease;
+}
+
+.interactive-panel::before {
+  background:
+    radial-gradient(circle at calc(var(--warp-xp, 50) * 1%) calc(var(--warp-yp, 50) * 1%), rgba(255, 255, 255, 0.18), transparent 55%);
+  opacity: calc(0.25 + var(--panel-warp) * 0.4);
+  filter: blur(60px);
+  transform: translate3d(calc((var(--warp-xp, 50) - 50) * 0.012vw), calc((var(--warp-yp, 50) - 50) * 0.018vh), 0) scale(calc(1 + var(--panel-warp) * 0.08));
+}
+
+.interactive-panel::after {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(10, 12, 26, 0.55), transparent 65%);
+  opacity: calc(var(--panel-warp) * 0.35);
+  filter: blur(90px);
+  transform: translate3d(0, 0, 0) scale(calc(1 + var(--panel-warp) * 0.12));
+}
+
+.interactive-panel>* {
+  position: relative;
+  z-index: 1;
+  transform: translate3d(calc((var(--warp-xp, 50) - 50) * -0.01vw * var(--panel-warp)),
+      calc((var(--warp-yp, 50) - 50) * -0.015vh * var(--panel-warp)),
+      0);
+  transition: transform 0.45s cubic-bezier(0.21, 0.61, 0.35, 1);
+}
+
+@media (max-width: 1024px) {
+  .interactive-panel {
+    border-radius: 24px;
+  }
+}
+
+@media (max-width: 640px) {
+  .interactive-panel {
+    border-radius: 20px;
+  }
+}
+
+/* Team page styles (moved from team.astro) */
+/* Per-page perf trims: avoid fixed backgrounds/blur from global body */
+body {
+  background-attachment: scroll;
+}
+
+body::before {
+  display: none;
+}
+
+.team-page {
+  position: relative;
+  min-height: min(100vh, 100svh);
+  color: #f6fbff;
+  /* Use EXACT same gradient as home page */
+  background-color: #050819;
+  background-image:
+    radial-gradient(circle at 18% 22%, rgba(52, 136, 255, 0.28), transparent 46%),
+    radial-gradient(circle at 82% 10%, rgba(0, 255, 209, 0.22), transparent 45%),
+    radial-gradient(circle at 10% 90%, rgba(157, 77, 242, 0.18), transparent 50%),
+    linear-gradient(140deg, #020513 0%, #050c20 52%, #03040d 100%);
+  background-attachment: fixed;
+  /* overflow: hidden; REMOVED to allow scrolling */
+  opacity: 1;
+  isolation: isolate;
+}
+
+
+
+.team-page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  /* Dark overlay that fades in during transition */
+  background: linear-gradient(135deg, rgba(10, 21, 32, 0.7) 0%, rgba(13, 26, 40, 0.7) 100%);
+  opacity: 0;
+  transition: opacity 1.6s ease-in-out;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Show overlay during hero transition */
+html.hero-transition .team-page::before {
+  opacity: 1;
+}
+
+.team-page::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.team-page::before {
+  background:
+    radial-gradient(ellipse at calc(var(--team-cursor-x, 0.5) * 100%) calc(var(--team-cursor-y, 0.45) * 100%),
+      rgba(0, 255, 213, 0.12),
+      transparent 60%),
+    radial-gradient(ellipse at 50% 55%, rgba(255, 0, 170, 0.05), transparent 70%);
+  mix-blend-mode: screen;
+  opacity: calc(0.32 + var(--team-cursor-strength, 0) * 0.2);
+}
+
+.team-page::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220'%3E%3Cg fill='none' stroke='rgba(255,255,255,0.03)' stroke-width='1'%3E%3Cpath d='M0 110h220M110 0v220'/%3E%3C/g%3E%3C/svg%3E");
+  opacity: 0.4;
+  mix-blend-mode: soft-light;
+}
+
+.summoning-field {
+  --field-pointer-x: 0.5;
+  --field-pointer-y: 0.5;
+  --field-pointer-strength: 0;
+  position: relative;
+  z-index: 1;
+  max-width: 1320px;
+  margin-inline: auto;
+  padding: clamp(3rem, 5vw, 5.5rem) clamp(1.5rem, 5vw, 5rem) clamp(5rem, 6vw, 6rem);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(2.5rem, 5vw, 3.5rem);
+}
+
+.summoning-field::before {
+  content: "";
+  position: absolute;
+  inset: 3%;
+  border-radius: 2.5rem;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  opacity: 0;
+  pointer-events: none;
+  mix-blend-mode: normal;
+}
+
+.team-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  text-transform: uppercase;
+  font-family: "Press Start 2P", "IBM Plex Mono", system-ui;
+}
+
+.team-header__row {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .team-header__row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+}
+
+.team-header h1 {
+  font-size: clamp(1.5rem, 4vw, 3rem);
+  letter-spacing: 0.15em;
+  margin: 0;
+}
+
+.team-header p {
+  margin: 0;
+  max-width: 48ch;
+  font-size: clamp(0.85rem, 1.5vw, 1rem);
+  line-height: 1.75;
+  letter-spacing: 0.08em;
+  color: rgba(234, 244, 255, 0.76);
+}
+
+.team-grid {
+  display: grid;
+  grid-template-columns: minmax(min(340px, 100%), 1fr);
+  gap: clamp(1.4rem, 2.2vw, 1.9rem);
+  width: 100%;
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 0 1rem 5rem;
+}
+
+@media (min-width: 980px) {
+  .team-grid {
+    grid-template-columns: repeat(2, minmax(320px, 1fr));
+  }
+}
+
+@media (min-width: 1500px) {
+  .team-grid {
+    grid-template-columns: repeat(3, minmax(360px, 1fr));
+  }
+}
+
+.go-home-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1.6rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  text-decoration: none;
+  font-family: "Press Start 2P", "IBM Plex Mono", system-ui;
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  color: #fefefe;
+  text-transform: uppercase;
+  overflow: hidden;
+  transition: border-color 0.3s ease, transform 0.3s ease;
+}
+
+.go-home-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, rgba(0, 255, 191, 0.3), rgba(255, 0, 170, 0.4));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.go-home-btn span {
+  position: relative;
+  z-index: 1;
+}
+
+.go-home-btn:hover,
+.go-home-btn:focus-visible {
+  border-color: rgba(255, 255, 255, 0.7);
+  transform: translateY(-2px);
+}
+
+.go-home-btn:hover::before,
+.go-home-btn:focus-visible::before {
+  opacity: 1;
+}
+
+/* Team badge styles (moved from TeamGrid.astro) */
+.badge {
+  padding: 0.15rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: linear-gradient(120deg, rgba(0, 244, 255, 0.18), rgba(255, 255, 255, 0.12));
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+/* Ripple tile styles (moved from RippleTile.astro) */
+/* --- RIPPLE TILE 3D FLIP CORE (single source of truth) --- */
+
+.tile {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 5 / 7;
+  cursor: pointer;
+  border-radius: 1.75rem;
+  perspective: 1400px;
+  transform-style: preserve-3d;
+  container-type: inline-size;
+}
+
+.tile-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.9s cubic-bezier(0.19, 1, 0.22, 1);
+  will-change: transform;
+}
+
+/* flip state toggled by adding .is-flipped to .tile */
+.tile.is-flipped .tile-inner {
+  transform: rotateY(180deg);
+}
+
+.tile-face {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+  border-radius: 1.75rem;
+  overflow: hidden;
+}
+
+/* front face (portrait + HUD) */
+.tile-face--front {
+  transform: rotateY(0deg);
+}
+
+/* back face (terminal / bio) */
+.tile-face--back {
+  transform: rotateY(180deg);
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+/* optional glow halo on front */
+.tile-face--front::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease-out;
+}
+
+/* ═══════════════════════════════════════════════════════
+   VEX ARCANA MODULE SYSTEM
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Tiles Container — responsive grid ────────────── */
+/* ── Tile module label ────────────────────────────── */
+.tile-module-label {
+  font-family: "Press Start 2P", "IBM Plex Mono", monospace;
+  font-size: clamp(0.55rem, 1.4vw, 0.72rem);
+  letter-spacing: 0.15em;
+  color: color-mix(in srgb, var(--role-accent, #73f8ff) 70%, rgba(255, 255, 255, 0.5));
+  text-align: center;
+  display: block;
+  opacity: 0.7;
+  animation: moduleLabelPulse 3s ease-in-out infinite;
+}
+
+@keyframes moduleLabelPulse {
+
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+
+  50% {
+    opacity: 0.9;
+  }
+}
+
+/* ── Tile burst (magical click effect) ────────────── */
+.tile-burst {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0;
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+.tile-burst.is-active {
+  animation: tileBurstFlash 500ms ease-out forwards;
+}
+
+.tile-burst.is-active::before {
+  content: "Ψ";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  font-size: 4rem;
+  color: var(--role-accent, #73f8ff);
+  text-shadow:
+    0 0 30px var(--role-accent-glow, #2dc7f6),
+    0 0 80px var(--role-accent, #73f8ff);
+  animation: tileBurstSigil 500ms ease-out forwards;
+}
+
+.tile-burst.is-active::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg,
+      transparent 0 4px,
+      rgba(92, 246, 255, 0.08) 4px 5px);
+  animation: tileBurstScanline 300ms ease-out;
+}
+
+@keyframes tileBurstFlash {
+  0% {
+    opacity: 1;
+    background: radial-gradient(circle, color-mix(in srgb, var(--role-accent, #73f8ff) 30%, transparent), transparent 60%);
+  }
+
+  100% {
+    opacity: 0;
+    background: radial-gradient(circle, transparent, transparent);
+  }
+}
+
+@keyframes tileBurstSigil {
+  0% {
+    transform: translate(-50%, -50%) scale(0) rotate(0deg);
+    opacity: 0;
+  }
+
+  40% {
+    transform: translate(-50%, -50%) scale(1.2) rotate(15deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(2) rotate(30deg);
+    opacity: 0;
+  }
+}
+
+@keyframes tileBurstScanline {
+  0% {
+    opacity: 1;
+    transform: translateY(-100%);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+}
+
+/* ── Arcana Portal (flip reveal overlay) ──────────── */
+.role-viewport .arcana-portal {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  pointer-events: none;
+  opacity: 0;
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+.role-back.is-revealing .role-viewport .arcana-portal {
+  animation: arcanaPortalReveal 650ms ease-out forwards;
+}
+
+.role-viewport .arcana-portal__scanline {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg,
+      transparent 0 3px,
+      rgba(92, 246, 255, 0.15) 3px 4px);
+  transform: translateY(-100%);
+}
+
+.role-back.is-revealing .role-viewport .arcana-portal__scanline {
+  animation: portalScanWipe 400ms ease-out forwards;
+}
+
+.role-viewport .arcana-portal__sigil {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  font-size: 3.5rem;
+  color: color-mix(in srgb, var(--role-accent, #5cf6ff) 80%, white);
+  text-shadow:
+    0 0 20px color-mix(in srgb, var(--role-accent, #5cf6ff) 60%, transparent),
+    0 0 60px color-mix(in srgb, var(--role-accent, #5cf6ff) 40%, transparent);
+  opacity: 0;
+}
+
+.role-back.is-revealing .role-viewport .arcana-portal__sigil {
+  animation: portalSigilExpand 500ms ease-out 100ms forwards;
+}
+
+@keyframes arcanaPortalReveal {
+  0% {
+    opacity: 1;
+  }
+
+  60% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes portalScanWipe {
+  0% {
+    transform: translateY(-100%);
+    opacity: 1;
+  }
+
+  80% {
+    transform: translateY(50%);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes portalSigilExpand {
+  0% {
+    transform: translate(-50%, -50%) scale(0) rotate(-30deg);
+    opacity: 0;
+  }
+
+  40% {
+    transform: translate(-50%, -50%) scale(1.4) rotate(0deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(2) rotate(10deg);
+    opacity: 0;
+  }
+}
+
+/* ── Arcana HUD Frame ─────────────────────────────── */
+/* ── Arcana HUD Frame (in-flow inside .arcana-header) ── */
+.arcana-hud {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.role-back.is-active .arcana-hud {
+  opacity: 1;
+}
+
+.arcana-hud__corner {
+  width: 12px;
+  height: 12px;
+  border-color: color-mix(in srgb, var(--role-accent, #5cf6ff) 60%, transparent);
+  border-style: solid;
+  border-width: 0;
+  flex-shrink: 0;
+}
+
+.arcana-hud__corner--tl {
+  border-top-width: 2px;
+  border-left-width: 2px;
+}
+
+.arcana-hud__corner--tr {
+  border-top-width: 2px;
+  border-right-width: 2px;
+}
+
+.arcana-hud__labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.5rem;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.42rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--role-accent, #5cf6ff) 55%, rgba(255, 255, 255, 0.4));
+  line-height: 1.4;
+}
+
+/* ── LEGENDARY PROC Badge ─────────────────────────── */
+.role-viewport .arcana-proc {
+  position: absolute;
+  bottom: 42px;
+  right: 10px;
+  z-index: 15;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--role-accent, #5cf6ff) 50%, transparent);
+  background: rgba(0, 0, 0, 0.6);
+  font-family: "Press Start 2P", monospace;
+  font-size: 0.42rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--role-accent, #5cf6ff);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.role-back.is-revealing .role-viewport .arcana-proc {
+  animation: procFlash 1.2s ease-out 400ms forwards;
+}
+
+@keyframes procFlash {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+
+  15% {
+    opacity: 1;
+    transform: scale(1.1);
+    text-shadow: 0 0 12px var(--role-accent, #5cf6ff);
+  }
+
+  30% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+    text-shadow: none;
+  }
+}
+
+/* ── Arcana Telemetry Strip ───────────────────────── */
+.arcana-telemetry {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.24rem;
+  padding: 0.24rem 0.38rem;
+  margin: 0.12rem 0.4rem 0.32rem;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid color-mix(in srgb, var(--role-accent, #5cf6ff) 30%, transparent);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.36rem;
+  letter-spacing: 0.05em;
+  line-height: 1.1;
+  text-transform: uppercase;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.4s ease 0.5s, transform 0.4s ease 0.5s;
+}
+
+.role-back.is-active .arcana-telemetry {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.arcana-telemetry__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.arcana-telemetry__label {
+  color: color-mix(in srgb, var(--role-accent, #5cf6ff) 50%, rgba(255, 255, 255, 0.3));
+}
+
+.arcana-telemetry__value {
+  color: var(--role-accent, #5cf6ff);
+  font-weight: 700;
+  text-shadow: 0 0 6px color-mix(in srgb, var(--role-accent, #5cf6ff) 40%, transparent);
+}
+
+/* ── Hologlass Sheen ──────────────────────────────── */
+.role-viewport .arcana-sheen {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  background: linear-gradient(135deg,
+      transparent 40%,
+      rgba(255, 255, 255, 0.04) 50%,
+      transparent 60%);
+  opacity: 0;
+  transition: opacity 0.5s ease 0.8s;
+}
+
+.role-back.is-active .role-viewport .arcana-sheen {
+  opacity: 1;
+}
+
+.tile:not(.is-flipped):hover .tile-face--front::before {
+  opacity: 0.85;
+}
+
+.tile::before,
+.tile::after {
+  content: "";
+  position: absolute;
+  inset: -6%;
+  border-radius: 50%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.45;
+  transition: opacity 0.4s ease;
+}
+
+.tile::before {
+  background: radial-gradient(circle,
+      color-mix(in srgb, var(--role-accent) 35%, transparent),
+      transparent 65%);
+  filter: blur(45px);
+}
+
+.tile::after {
+  background: radial-gradient(circle at 30% 0%,
+      color-mix(in srgb, var(--role-accent-glow) 40%, transparent),
+      transparent 70%);
+  filter: blur(70px);
+}
+
+.tile:hover::before,
+.tile:hover::after {
+  opacity: 0.7;
+}
+
+.hud-panel {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: clamp(1rem, 3vw, 1.35rem);
+  align-items: stretch;
+  padding: clamp(1rem, 2.5vw, 2rem);
+  border-radius: 1.3rem;
+  border: 1px solid color-mix(in srgb, var(--role-accent) 45%, rgba(255, 255, 255, 0.12));
+  background: linear-gradient(180deg,
+      rgba(2, 6, 18, 0.9),
+      rgba(1, 3, 10, 0.98)),
+    radial-gradient(circle at 18% -20%,
+      color-mix(in srgb, var(--role-accent-glow) 35%, transparent),
+      transparent 55%);
+  box-shadow: inset 0 0 45px rgba(15, 118, 110, 0.35);
+  overflow: hidden;
+}
+
+.hud-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: linear-gradient(90deg,
+      rgba(255, 255, 255, 0.03) 1px,
+      transparent 0),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025) 1px, transparent 0);
+  background-size:
+    80px 1px,
+    1px 80px;
+  opacity: 0.25;
+  mix-blend-mode: soft-light;
+  pointer-events: none;
+}
+
+.hud-panel>* {
+  position: relative;
+  z-index: 1;
+}
+
+.hud-panel--back {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  padding: 0;
+  overflow: visible;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.tile-face--back .hud-panel--back {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.hud-panel--back .role-back {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.hud-panel--back::after {
+  display: none;
+}
+
+.hud-panel--back .role-back {
+  border-radius: inherit;
+  font-family: "Press Start 2P", "IBM Plex Mono", monospace;
+}
+
+.hud-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1.5rem;
+  font-family: "Press Start 2P", "IBM Plex Mono", system-ui;
+  font-size: clamp(0.55rem, 1.6vw, 0.78rem);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(236, 245, 255, 0.75);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.hud-header__tag {
+  color: var(--role-accent);
+}
+
+.hud-header,
+.hud-header__meta {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.hud-header__status {
+  white-space: nowrap;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.hud-scrying {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: 1.35rem;
+  padding: clamp(0.8rem, 2vw, 1.2rem);
+  background: rgba(1, 3, 10, 0.9);
+  border: 1px solid color-mix(in srgb, var(--role-accent) 45%, transparent);
+  box-shadow: 0 0 50px color-mix(in srgb, var(--role-accent) 15%, transparent);
+}
+
+.hud-scrying__inner {
+  position: relative;
+  border-radius: 1rem;
+  overflow: hidden;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  background: linear-gradient(180deg,
+      rgba(0, 8, 25, 0.9),
+      rgba(2, 6, 20, 0.85)),
+    radial-gradient(circle at 30% 20%,
+      rgba(255, 255, 255, 0.05),
+      transparent 55%);
+}
+
+.scrying-label {
+  position: absolute;
+  top: 0.85rem;
+  left: 1rem;
+  display: flex;
+  gap: 0.6rem;
+  font-family: "Press Start 2P", "IBM Plex Mono", monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.25em;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+}
+
+.hud-runes {
+  position: absolute;
+  inset: -8% -4%;
+  pointer-events: none;
+  filter: drop-shadow(0 0 18px color-mix(in srgb, var(--role-accent-glow) 45%, transparent));
+  mix-blend-mode: screen;
+  z-index: 2;
+}
+
+.hud-rune {
+  position: absolute;
+  left: var(--rune-x);
+  top: var(--rune-y);
+  transform: translate(-50%, -50%) scale(var(--rune-scale, 1));
+  color: color-mix(in srgb, var(--role-accent) 80%, rgba(255, 255, 255, 0.55));
+  font-size: clamp(0.78rem, 1.7vw, 1.15rem);
+  letter-spacing: 0.18em;
+  opacity: 0.78;
+  text-shadow:
+    0 0 12px color-mix(in srgb, var(--role-accent-glow) 55%, transparent),
+    0 0 26px color-mix(in srgb, var(--role-accent) 35%, transparent);
+  animation:
+    runeFloat 18s ease-in-out infinite,
+    runePulse 8s ease-in-out infinite;
+  animation-delay: var(--rune-delay, 0s);
+}
+
+.tile:hover .hud-rune,
+.tile.is-flipped .hud-rune {
+  opacity: 0.9;
+  text-shadow:
+    0 0 14px color-mix(in srgb, var(--role-accent-glow) 65%, transparent),
+    0 0 34px color-mix(in srgb, var(--role-accent) 55%, transparent);
+  animation-duration: 14s, 5s;
+}
+
+.roger-wrap {
+  position: relative;
+  isolation: isolate;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  overflow: hidden;
+  transform: none;
+  transform-style: flat;
+  transform-origin: center center;
+}
+
+.roger-wrap>canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  opacity: 0;
+  image-rendering: pixelated;
+}
+
+.roger-true {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.roger-src {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  pointer-events: none;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.roger-wrap.is-ripple-active[data-ripple-ready="1"] .roger-src,
+.roger-wrap.ripple-ready .roger-src {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.roger-wrap.is-ripple-active>canvas,
+.roger-wrap.ripple-ready>canvas {
+  opacity: 1;
+}
+
+/* (show-true / roger-true removed — portrait modal gone) */
+
+/* Disable front-face interaction when tile is flipped */
+.tile.is-flipped .tile-face--front {
+  pointer-events: none;
+}
+
+.role-viewport,
+.pixel-terminal {
+  min-height: 0;
+}
+
+.crt-overlay {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(transparent 0 2px,
+      rgba(255, 255, 255, 0.08) 2px 3px),
+    repeating-linear-gradient(90deg,
+      transparent 0 3px,
+      rgba(255, 255, 255, 0.02) 3px 4px);
+  mix-blend-mode: screen;
+  opacity: 0.3;
+  animation: crtShift 4s linear infinite;
+  pointer-events: none;
+}
+
+.hud-callouts {
+  margin-top: clamp(0.45rem, 0.9vw, 0.8rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-family: "Press Start 2P", "IBM Plex Mono", monospace;
+  letter-spacing: 0.12em;
+  color: rgba(233, 241, 255, 0.85);
+}
+
+.pilot-name {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  font-family: "Press Start 2P", "IBM Plex Mono", system-ui;
+  font-size: clamp(14px, 2.2vw, 22px);
+  line-height: 1.2;
+  margin: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.pilot-roles {
+  margin: 0.25rem 0 0;
+  font-size: clamp(10px, 1.4vw, 14px);
+  opacity: 0.9;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.title-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--role-accent);
+  background: rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0 8px var(--role-accent);
+  color: var(--role-accent);
+  font-family: var(--pixel-font,
+      "Press Start 2P",
+      "IBM Plex Mono",
+      monospace);
+  font-size: 11px;
+  text-transform: uppercase;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.hud-terminal {
+  background: rgba(3, 6, 18, 0.95);
+  border-radius: 1.1rem;
+  border: 1px solid color-mix(in srgb, var(--role-accent) 35%, transparent);
+  box-shadow:
+    inset 0 0 25px rgba(255, 255, 255, 0.05),
+    0 0 55px color-mix(in srgb, var(--role-accent) 20%, transparent);
+  padding: clamp(0.9rem, 2vw, 1.4rem);
+  font-family: "Press Start 2P", "IBM Plex Mono", monospace;
+  font-size: clamp(0.62rem, 1.7vw, 0.85rem);
+  letter-spacing: 0.08em;
+  color: rgba(229, 241, 255, 0.85);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  margin-top: clamp(0.85rem, 2vw, 1.25rem);
+}
+
+.portrait-btn {
+  margin-top: 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.55rem 0.85rem;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--role-accent) 65%, transparent);
+  background: rgba(2, 6, 20, 0.5);
+  color: var(--role-accent);
+  font: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition:
+    border-color 0.3s ease,
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.portrait-btn::before {
+  content: "�Y�";
+  font-size: 0.8em;
+}
+
+.portrait-btn:hover,
+.portrait-btn:focus-visible {
+  border-color: color-mix(in srgb, var(--role-accent) 75%, white 10%);
+  box-shadow: 0 0 25px color-mix(in srgb, var(--role-accent) 25%, transparent);
+  transform: translateY(-2px);
+  outline: none;
+}
+
+.cli-cursor {
+  display: inline-block;
+  animation: cursorBlink 1s steps(2, jump-none) infinite;
+}
+
+@keyframes cursorBlink {
+
+  0%,
+  50% {
+    opacity: 1;
+  }
+
+  50.01%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes runeFloat {
+  0% {
+    transform: translate(-50%, -50%) translate3d(0, 0, 0) scale(var(--rune-scale, 1));
+  }
+
+  25% {
+    transform: translate(-50%, -50%) translate3d(calc(var(--rune-orbit, 10px) * 0.6), calc(var(--rune-orbit, 10px) * -0.35), 0) scale(calc(var(--rune-scale, 1) * 1.04));
+  }
+
+  50% {
+    transform: translate(-50%, -50%) translate3d(calc(var(--rune-orbit, 10px) * -0.4), calc(var(--rune-orbit, 10px) * 0.55), 0) scale(calc(var(--rune-scale, 1) * 0.98));
+  }
+
+  75% {
+    transform: translate(-50%, -50%) translate3d(calc(var(--rune-orbit, 10px) * 0.25), calc(var(--rune-orbit, 10px) * 0.25), 0) scale(calc(var(--rune-scale, 1) * 1.02));
+  }
+
+  100% {
+    transform: translate(-50%, -50%) translate3d(0, 0, 0) scale(var(--rune-scale, 1));
+  }
+}
+
+@keyframes runePulse {
+
+  0%,
+  100% {
+    filter: drop-shadow(0 0 8px color-mix(in srgb, var(--role-accent) 40%, transparent));
+    opacity: 0.55;
+  }
+
+  40% {
+    filter: drop-shadow(0 0 18px color-mix(in srgb, var(--role-accent-glow) 70%, transparent));
+    opacity: 0.85;
+  }
+
+  65% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes crtShift {
+  0% {
+    transform: translateY(0);
+  }
+
+  100% {
+    transform: translateY(-4px);
+  }
+}
+
+@media (max-width: 640px) {
+  .hud-header {
+    gap: 0.5rem 0.85rem;
+  }
+
+  .hud-header__status {
+    margin-left: 0;
+  }
+}
+
+/* Definitive Flash Fix: Hide team content during hero transition */
+html.hero-transition .team-page .tile,
+html.hero-transition .team-page .team-header,
+html.hero-transition .team-page .team-grid {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transition: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════
+   PRESS START BUTTON  (inside .site-loader__panel)
+   ═══════════════════════════════════════════════════════ */
+.press-start-btn {
+  position: relative;
+  display: none;
+  /* hidden by default, shown via .is-visible */
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 100%;
+  margin-top: 1.5rem;
+  padding: 1.4rem 2rem;
+  border: 2px solid rgba(92, 246, 255, 0.7);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(0, 255, 213, 0.08), rgba(92, 246, 255, 0.06));
+  cursor: pointer;
+  outline: none;
+  overflow: hidden;
+  animation: pressStartPulse 2.2s ease-in-out infinite;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.press-start-btn.is-visible {
+  display: flex;
+}
+
+.press-start-btn:hover,
+.press-start-btn:focus-visible {
+  transform: scale(1.03);
+  border-color: rgba(92, 246, 255, 1);
+  box-shadow:
+    0 0 30px rgba(92, 246, 255, 0.6),
+    0 0 80px rgba(255, 60, 255, 0.3);
+}
+
+.press-start-btn__text {
+  font-family: "Press Start 2P", "IBM Plex Mono", monospace;
+  font-size: clamp(1rem, 2.4vw, 1.4rem);
+  letter-spacing: 0.25em;
+  color: #5cf6ff;
+  text-shadow:
+    0 0 12px rgba(92, 246, 255, 0.9),
+    0 0 30px rgba(0, 255, 213, 0.7);
+}
+
+.press-start-btn__sub {
+  font-family: "JetBrains Mono", monospace;
+  font-size: clamp(0.6rem, 1.2vw, 0.75rem);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(200, 230, 255, 0.55);
+}
+
+.press-start-btn__glow {
+  position: absolute;
+  inset: -40%;
+  background: radial-gradient(circle at 50% 50%, rgba(92, 246, 255, 0.25), transparent 55%);
+  opacity: 0.5;
+  pointer-events: none;
+  animation: pressGlowDrift 3s ease-in-out infinite alternate;
+}
+
+@keyframes pressStartPulse {
+
+  0%,
+  100% {
+    box-shadow:
+      0 0 18px rgba(92, 246, 255, 0.3),
+      0 0 60px rgba(255, 0, 200, 0.15);
+  }
+
+  50% {
+    box-shadow:
+      0 0 28px rgba(92, 246, 255, 0.5),
+      0 0 90px rgba(255, 0, 200, 0.3);
+  }
+}
+
+@keyframes pressGlowDrift {
+  0% {
+    transform: translateY(-10%) scale(0.9);
+  }
+
+  100% {
+    transform: translateY(10%) scale(1.1);
+  }
+}
+
+/* Hide the meter when ARMED */
+body[data-loader-state="armed"] .site-loader__meter {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+body[data-loader-state="armed"] .site-loader__status-line {
+  color: #5cf6ff;
+  animation: armedTextPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes armedTextPulse {
+
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   CARD FLIP REVEAL  (scanline wipe + glow)
+   ═══════════════════════════════════════════════════════ */
+.role-back {
+  --rb-px: 0.5;
+  --rb-py: 0.5;
+}
+
+/* Reveal overlay — sits on top during flip entrance */
+.role-back .role-viewport::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    repeating-linear-gradient(0deg,
+      transparent 0 3px,
+      rgba(92, 246, 255, 0.12) 3px 4px),
+    radial-gradient(ellipse at 50% 50%,
+      rgba(92, 246, 255, 0.35),
+      transparent 70%);
+  mix-blend-mode: screen;
+}
+
+.role-back.is-revealing .role-viewport::before {
+  animation: flipRevealScanline 400ms ease-out forwards;
+}
+
+@keyframes flipRevealScanline {
+  0% {
+    opacity: 1;
+    transform: scaleY(0.02) translateY(-50%);
+    filter: brightness(3);
+  }
+
+  30% {
+    opacity: 1;
+    transform: scaleY(1) translateY(0);
+    filter: brightness(2);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scaleY(1) translateY(0);
+    filter: brightness(1);
+  }
+}
+
+/* Glow pulse after reveal */
+.role-back.is-revealing .role-viewport::after {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  z-index: 99;
+  pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%,
+      color-mix(in srgb, var(--role-accent, #5cf6ff) 45%, transparent),
+      transparent 60%);
+  animation: flipGlowPulse 500ms ease-out forwards;
+}
+
+@keyframes flipGlowPulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+
+  30% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.2);
+  }
+}
+
+/* Chromatic glitch tear */
+.role-back.is-glitch-tear {
+  animation: glitchTear 300ms steps(3) forwards;
+}
+
+@keyframes glitchTear {
+  0% {
+    filter: none;
+  }
+
+  25% {
+    filter: hue-rotate(20deg);
+    transform: translateX(2px);
+  }
+
+  50% {
+    filter: hue-rotate(-15deg) saturate(1.4);
+    transform: translateX(-3px);
+  }
+
+  75% {
+    filter: hue-rotate(10deg);
+    transform: translateX(1px);
+  }
+
+  100% {
+    filter: none;
+    transform: none;
+  }
+}
+
+/* ─── Pointer reactive glow ─────────────────────────── */
+
+/* ─── Pointer parallax tilt on back side ─────────────── */
+.tile.is-flipped .tile-face--back {
+  will-change: transform;
+}
+
+/* ═══════════════════════════════════════════════════════
+   MICRO-EVENT KEYFRAMES (per-role)
+   ═══════════════════════════════════════════════════════ */
+
+/* Coder: glitch spike */
+.role-back.is-glitch-spike {
+  animation: microGlitchSpike 400ms steps(4) forwards;
+}
+
+@keyframes microGlitchSpike {
+  0% {
+    filter: none;
+  }
+
+  20% {
+    filter: hue-rotate(30deg) brightness(1.3);
+    transform: translateX(2px);
+  }
+
+  50% {
+    filter: hue-rotate(-20deg) brightness(1.5);
+    transform: translateX(-3px) skewX(2deg);
+  }
+
+  80% {
+    filter: hue-rotate(15deg) brightness(1.2);
+    transform: translateX(1px);
+  }
+
+  100% {
+    filter: none;
+    transform: none;
+  }
+}
+
+/* Coder: matrix rain burst */
+.coder-matrix.is-rain-burst {
+  filter: brightness(1.8) saturate(1.3);
+  transition: filter 0.15s ease;
+}
+
+/* Coder: CRT boot line */
+.role-back.is-crt-boot .role-viewport::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  top: 0;
+  z-index: 200;
+  background: linear-gradient(90deg, transparent, rgba(92, 246, 255, 0.9), transparent);
+  animation: crtBootSweep 600ms ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes crtBootSweep {
+  0% {
+    top: 0;
+    opacity: 1;
+  }
+
+  100% {
+    top: 100%;
+    opacity: 0.3;
+  }
+}
+
+/* Driver: speedline surge */
+.role-back.is-speedline-surge .driver-viewport {
+  filter: brightness(2);
+  transition: filter 0.15s ease;
+}
+
+.role-back.is-speedline-surge .driver-viewport {
+  animation: speedSurge 500ms ease-out;
+}
+
+@keyframes speedSurge {
+  0% {
+    transform: scaleY(1);
+  }
+
+  30% {
+    transform: scaleY(1.04) translateY(-2px);
+  }
+
+  100% {
+    transform: scaleY(1) translateY(0);
+  }
+}
+
+/* Driver: warp tunnel snap for entrance */
+.role-back.is-warp-snap .driver-viewport {
+  animation: warpSnap 600ms ease-out;
+}
+
+@keyframes warpSnap {
+  0% {
+    transform: perspective(200px) rotateX(4deg) scaleY(1.15);
+    filter: brightness(1.6);
+  }
+
+  100% {
+    transform: perspective(0) rotateX(0) scaleY(1);
+    filter: brightness(1);
+  }
+}
+
+/* Designer: blueprint draw-in */
+.role-back.is-blueprint-draw [data-blueprint-line] {
+  stroke-dasharray: 200;
+  stroke-dashoffset: 200;
+  animation: blueprintDrawIn 800ms ease-out forwards;
+}
+
+@keyframes blueprintDrawIn {
+  0% {
+    stroke-dashoffset: 200;
+  }
+
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Designer: measure ping */
+.role-back.is-measure-ping .designer-constraints {
+  animation: measurePing 400ms ease-out;
+}
+
+@keyframes measurePing {
+  0% {
+    filter: brightness(1);
+  }
+
+  40% {
+    filter: brightness(2) drop-shadow(0 0 8px var(--role-accent, #5cf6ff));
+  }
+
+  100% {
+    filter: brightness(1);
+  }
+}
+
+/* Builder: spark burst + impact flash */
+.role-back.is-spark-burst .builder-scene {
+  animation: sparkBurstFlash 500ms ease-out;
+}
+
+@keyframes sparkBurstFlash {
+  0% {
+    filter: brightness(1);
+  }
+
+  20% {
+    filter: brightness(1.8);
+  }
+
+  100% {
+    filter: brightness(1);
+  }
+}
+
+/* Notebooker: prophecy glow crescendo */
+.role-back.is-prophecy-glow .notebook-runes {
+  animation: prophecyGlow 600ms ease-in-out;
+}
+
+@keyframes prophecyGlow {
+  0% {
+    filter: brightness(1);
+    opacity: 0.8;
+  }
+
+  50% {
+    filter: brightness(2.5) drop-shadow(0 0 20px rgba(247, 227, 137, 0.8));
+    opacity: 1;
+  }
+
+  100% {
+    filter: brightness(1);
+    opacity: 0.8;
+  }
+}
+
+/* Shockwave ring (generic micro-event) */
+.role-back__shockwave {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--role-accent, #5cf6ff) 70%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 120;
+  animation: shockwaveExpand 600ms ease-out forwards;
+}
+
+@keyframes shockwaveExpand {
+  0% {
+    transform: scale(0.1);
+    opacity: 0.9;
+  }
+
+  100% {
+    transform: scale(5);
+    opacity: 0;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   REDUCED-MOTION OVERRIDES
+   ═══════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  .press-start-btn {
+    animation: none;
+  }
+
+  .press-start-btn__glow {
+    animation: none;
+  }
+
+  .role-back.is-revealing .role-viewport::before,
+  .role-back.is-revealing .role-viewport::after {
+    animation: none;
+    opacity: 0;
+  }
+
+  .role-back.is-glitch-tear,
+  .role-back.is-glitch-spike,
+  .role-back.is-crt-boot .role-viewport::after,
+  .role-back.is-speedline-surge .driver-viewport,
+  .role-back.is-warp-snap .driver-viewport,
+  .role-back.is-spark-burst .builder-scene,
+  .role-back.is-prophecy-glow .notebook-runes,
+  .role-back.is-measure-ping .designer-constraints {
+    animation: none;
+    filter: none;
+    transform: none;
+  }
+
+  .role-back__shockwave {
+    display: none;
+  }
+}

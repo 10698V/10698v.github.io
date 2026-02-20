@@ -1,0 +1,1 @@
+function g(){const e=Array.from(document.querySelectorAll(".tile"));if(!e.length)return[];const n=window.innerWidth,o=window.innerHeight;return e.map(r=>{const t=r.getBoundingClientRect(),i=(t.left+t.width/2)/n*2-1,c=-((t.top+t.height/2)/o*2-1),h=t.width/n*2,d=t.height/o*2,s=r.getAttribute("data-role")||"unknown";return{x:i,y:c,w:h,h:d,roleId:s}})}export{g as getTeamCardRects};

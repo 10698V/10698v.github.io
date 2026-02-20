@@ -1,0 +1,173 @@
+---
+import type { Role, RoleId } from "../data/team";
+import RoleBack from "./RoleBack.astro";
+
+type RippleTileProps = {
+  src: string;
+  portraitPx?: string;
+  alt?: string;
+  name?: string;
+  badge?: string;
+  roleId?: RoleId;
+  roles?: Role[];
+  experienceYears?: number;
+  grade?: string;
+  age?: number;
+};
+
+const props = Astro.props as RippleTileProps;
+const {
+  src,
+  portraitPx,
+  alt = "",
+  name = "",
+  badge = "",
+  roleId: explicitRole,
+  roles = [],
+  experienceYears,
+  grade,
+} = props;
+
+const formattedRoles =
+  Array.isArray(roles) && roles.length ? roles.join(" / ") : "";
+const hasStats =
+  typeof experienceYears === "number" ||
+  (typeof grade === "string" && grade.length > 0);
+
+const KNOWN_ROLES: Role[] = [
+  "Builder",
+  "Coder",
+  "Driver",
+  "Designer",
+  "Notebooker",
+];
+
+const primaryRole =
+  roles.find((role): role is Role => KNOWN_ROLES.includes(role)) ?? "Coder";
+const resolvedRoleId = (explicitRole ?? primaryRole.toLowerCase()) as RoleId;
+
+const ROLE_ACCENTS: Record<
+  RoleId,
+  {
+    accent: string;
+    glow: string;
+    grid: string;
+  }
+> = {
+  coder: { accent: "#6ef9b4", glow: "#2be49a", grid: "#1b2f28" },
+  driver: { accent: "#67d8ff", glow: "#2eb3ff", grid: "#102837" },
+  designer: { accent: "#ff73f1", glow: "#ff41d7", grid: "#2b0d2f" },
+  builder: { accent: "#6bd1ff", glow: "#3ca4ff", grid: "#0d2434" },
+  notebooker: { accent: "#f7e27b", glow: "#f2c94c", grid: "#32240c" },
+};
+
+const accentConfig = ROLE_ACCENTS[resolvedRoleId] ?? {
+  accent: "#73f8ff",
+  glow: "#2dc7f6",
+  grid: "#0f1c2a",
+};
+
+const glyphs = ["\u03A8", "\u2A61", "\u2234", "\u03A9"];
+type RuneSlot = {
+  x: number;
+  y: number;
+  delay?: number;
+  orbit?: number;
+  scale?: number;
+};
+
+const runeSlots: RuneSlot[] = [
+  { x: 9, y: 7, delay: 0, orbit: 10 },
+  { x: 50, y: 6, delay: 0.35, orbit: 12 },
+  { x: 89, y: 10, delay: 0.6, orbit: 10 },
+  { x: 7, y: 26, delay: 0.8, orbit: 8 },
+  { x: 93, y: 28, delay: 0.55, orbit: 9 },
+  { x: 6, y: 52, delay: 1.1, orbit: 14 },
+  { x: 94, y: 52, delay: 1.35, orbit: 14 },
+  { x: 10, y: 76, delay: 1.5, orbit: 10 },
+  { x: 50, y: 86, delay: 1.8, orbit: 11 },
+  { x: 90, y: 78, delay: 1.65, orbit: 10 },
+  { x: 28, y: 12, delay: 0.2, orbit: 9 },
+  { x: 72, y: 14, delay: 0.4, orbit: 9 },
+];
+const callSign = name ? name.toUpperCase() : "UNREGISTERED PILOT";
+const roleStack = formattedRoles || primaryRole;
+const roleStackLabel = roleStack.toUpperCase();
+const levelLabel =
+  grade?.toUpperCase() ??
+  (typeof experienceYears === "number"
+    ? `${experienceYears}+Y XP`
+    : "LEVEL III");
+const titleBadgeLabel = badge ? badge.toUpperCase() : "";
+const hasTitleBadge = Boolean(titleBadgeLabel);
+---
+
+<button
+  class={`tile role-${resolvedRoleId}`}
+  data-role={resolvedRoleId}
+  data-name={name}
+  type="button"
+  aria-pressed="false"
+  style={`--role-accent:${accentConfig.accent}; --role-accent-glow:${accentConfig.glow}; --role-grid:${accentConfig.grid}; --tile-curve:cubic-bezier(0.2, 0.7, 0.3, 1); display: block; isolation: isolate; padding: 0; border: none; background: none;`}
+>
+  <div class="tile-inner">
+    <div class="tile-face tile-face--front">
+      <div class="hud-panel">
+        <div class="hud-header">
+          <span class="hud-header__tag">[ TEAM 10698V ]</span>
+          <span class="hud-header__meta">[ LEVEL: {levelLabel} ]</span>
+          <span class="hud-header__meta">[ STATUS: ONLINE ]</span>
+          <span class="hud-header__meta">[ SIGNAL: LINKED ]</span>
+        </div>
+        <div class="hud-callouts" aria-hidden="true">
+          <p class="pilot-name">{name}</p>
+          {
+            hasTitleBadge && (
+              <span class="title-badge">{titleBadgeLabel}</span>
+            )
+          }
+          <p class="pilot-roles">{roleStackLabel}</p>
+        </div>
+        <div class="hud-scrying">
+          <div class="hud-scrying__inner">
+            <div class="hud-runes" aria-hidden="true">
+              {
+                runeSlots.map((slot, index) => (
+                  <span
+                    class="hud-rune"
+                    style={`--rune-x:${slot.x}%; --rune-y:${slot.y}%; --rune-delay:${slot.delay ?? 0}s; --rune-orbit:${slot.orbit ?? 10}px; --rune-scale:${slot.scale ?? 1};`}
+                  >
+                    {glyphs[index % glyphs.length]}
+                  </span>
+                ))
+              }
+            </div>
+            <div class="roger-wrap" role="img" aria-label={alt}>
+              <img
+                class="roger-src"
+                src={portraitPx ?? src}
+                alt={alt}
+                loading="eager"
+                decoding="async"
+                fetchpriority="high"
+              />
+            </div>
+            <div class="crt-overlay" aria-hidden="true"></div>
+          </div>
+        </div>
+        <div class="hud-terminal">
+          <span class="tile-module-label">[FLIP TO ACTIVATE ARCANA]</span>
+        </div>
+      </div>
+    </div>
+    <div class="tile-face tile-face--back">
+      <div class="hud-panel hud-panel--back">
+        <RoleBack roleId={resolvedRoleId} name={name} />
+      </div>
+    </div>
+  </div>
+  <!-- Sigil burst overlay for magical click effect -->
+  <div class="tile-burst" aria-hidden="true"></div>
+</button>
+
+<style>/* styles moved to global.css */</style>

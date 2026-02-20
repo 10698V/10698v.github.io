@@ -1,0 +1,80 @@
+---
+import type { Role, RoleId } from "../data/team";
+
+type PortraitModalProps = {
+  id: string;
+  name?: string;
+  avatar: string;
+  roles?: Role[];
+  roleId: RoleId;
+  grade?: string;
+  status?: string;
+  title?: string;
+};
+
+const {
+  id,
+  name = "Unknown Pilot",
+  avatar,
+  roles = [],
+  roleId,
+  grade,
+  status = "ONLINE",
+  title = "",
+} = Astro.props as PortraitModalProps;
+
+const roleLabel = roleId.toUpperCase();
+const rolesLine = (roles.length ? roles.join(" / ") : roleLabel).toUpperCase();
+const timestamp = new Date().toISOString().slice(0, 10);
+const gradeLabel = (grade || "SIGMA").toUpperCase();
+const statusLabel = status.toUpperCase();
+const titleBadge = title ? title.toUpperCase() : "";
+---
+
+<div class="portrait-modal" id={id} data-portrait-modal aria-hidden="true" hidden>
+  <div class="portrait-backdrop" data-portrait-close></div>
+  <div
+    class="portrait-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby={`${id}-title`}
+    data-portrait-dialog
+    tabindex="-1"
+  >
+    <div class="portrait-frame">
+      <p class="portrait-label">PLAYER PROFILE – READ ONLY</p>
+      <h2 class="portrait-title" id={`${id}-title`}>{name}</h2>
+      <p class="portrait-role">{rolesLine}</p>
+      {titleBadge && <span class="portrait-title-badge">{titleBadge}</span>}
+      <div class="portrait-image">
+        <img src={avatar} alt={`${name} portrait`} loading="lazy" decoding="async" />
+        <div class="portrait-scanlines" aria-hidden="true"></div>
+        <div class="portrait-vignette" aria-hidden="true"></div>
+      </div>
+      <div class="portrait-meta">
+        <div>
+          <span>ROLE</span>
+          <strong>{roleLabel}</strong>
+        </div>
+        <div>
+          <span>GRADE</span>
+          <strong>{gradeLabel}</strong>
+        </div>
+        <div>
+          <span>STATUS</span>
+          <strong>{statusLabel}</strong>
+        </div>
+      </div>
+      <div class="portrait-stats">
+        <span>TIMESTAMP: {timestamp}</span>
+        <span>LOCATION: PIT 10698V NOTEBOOK REF: PAGE 214</span>
+        <span>STATUS: READY FOR PUSHBACK</span>
+      </div>
+      <button type="button" class="portrait-close" data-portrait-close>
+        [ CLOSE ARCHIVE ]
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>/* styles moved to global.css */</style>

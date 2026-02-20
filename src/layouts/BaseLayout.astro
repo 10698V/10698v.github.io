@@ -1,0 +1,354 @@
+---
+import { ViewTransitions } from "astro:transitions";
+import "../styles/global.css";
+import { team } from "../data/team";
+
+const { showQuicklink = false } = Astro.props;
+
+const heroImage = "/logo.png";
+const currentRoute = Astro.url.pathname;
+const preloadTargets = Array.from(
+  new Set(
+    [
+      heroImage,
+      ...team.flatMap((member) => [
+        member.avatar,
+        member.portraitPx,
+        member.portraitTrue,
+      ]),
+    ].filter(Boolean),
+  ),
+);
+const assetManifest = JSON.stringify(preloadTargets);
+---
+
+<html lang="en">
+  <head>
+    <!-- jQuery + WebGL Ripples plugin (GPU water) -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/gh/sirxemic/jquery.ripples/dist/jquery.ripples.min.js" defer></script>
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel='icon' type='image/png' href='/wordmark.png' />
+    <title>10698V – Optimus Prim3</title>
+    <ViewTransitions />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- IMPORTANT: Import map must be before any type="module" scripts -->
+    <script type="importmap">
+      {
+        "imports": {
+          "gsap": "https://esm.sh/gsap@3.12.5",
+          "gsap/ScrollTrigger": "https://esm.sh/gsap@3.12.5/ScrollTrigger?external=gsap",
+          "@studio-freight/lenis": "https://esm.sh/@studio-freight/lenis@1.0.29"
+        }
+      }
+    </script>
+  </head>
+
+  <body class="text-white font-sans overflow-x-hidden" data-route={currentRoute}>
+    <!-- Global RGB split filter: applied to the ripples canvas on hover -->
+    <svg width="0" height="0" style="position:absolute;left:-9999px;top:-9999px" aria-hidden="true">
+      <filter id="rgb-split">
+        <feColorMatrix in="SourceGraphic" type="matrix"
+          values="1 0 0 0 0
+                  0 0 0 0 0
+                  0 0 0 0 0
+                  0 0 0 1 0" result="r"/>
+        <feColorMatrix in="SourceGraphic" type="matrix"
+          values="0 0 0 0 0
+                  0 1 0 0 0
+                  0 0 0 0 0
+                  0 0 0 1 0" result="g"/>
+        <feColorMatrix in="SourceGraphic" type="matrix"
+          values="0 0 0 0 0
+                  0 0 0 0 0
+                  0 0 1 0 0
+                  0 0 0 1 0" result="b"/>
+        <feOffset in="r" dx="1.2" dy="-0.6" result="r2"/>
+        <feOffset in="b" dx="-1.2" dy="0.6" result="b2"/>
+        <feBlend in="g" in2="r2" mode="screen" result="rg"/>
+        <feBlend in="rg" in2="b2" mode="screen"/>
+      </filter>
+    </svg>
+
+    <!-- Persistent WebGL Overlay -->
+    <div
+      id="webgl-overlay"
+      transition:persist
+      transition:name="webgl-overlay"
+      transition:animate="none"
+      class="fixed inset-0 z-[-1] pointer-events-none"
+    ></div>
+
+    <div class="interactive-bg" data-interactive-bg>
+      <div class="interactive-bg__gradient"></div>
+      <div class="interactive-bg__sheen"></div>
+    </div>
+    <div class="site-loader" data-site-loader data-active="false" aria-live="polite">
+      <div class="site-loader__backdrop" aria-hidden="true"></div>
+
+      <div class="site-loader__panel">
+        <div class="site-loader__relic" aria-hidden="true" data-loader-relic>
+          <div class="site-loader__relic-core">OP3</div>
+          <div class="site-loader__relic-ring"></div>
+          <div class="site-loader__relic-charge-track">
+            <span class="site-loader__relic-charge" data-loader-relic-charge></span>
+          </div>
+        </div>
+
+        <header class="site-loader__header">
+          <span class="site-loader__header-label">OPTIMUS PRIM3 // SUMMONING RITUAL CONSOLE</span>
+          <span class="site-loader__header-seal">SEAL: PENDING</span>
+        </header>
+        <p class="site-loader__prophecy" data-loader-prophecy>INITIATING OATH CHANNEL...</p>
+
+        <div class="site-loader__body">
+          <ol class="site-loader__phases" data-loader-phases>
+            <li class="site-loader__phase" data-phase-key="binding">
+              <span class="site-loader__phase-icon">[*]</span>
+              <span class="site-loader__phase-label">BINDING SIGILS</span>
+              <span class="site-loader__phase-state" data-phase-state>PENDING</span>
+              <span class="site-loader__phase-caret" aria-hidden="true">_</span>
+            </li>
+            <li class="site-loader__phase" data-phase-key="etching">
+              <span class="site-loader__phase-icon">[+]</span>
+              <span class="site-loader__phase-label">ETCHING FIELD GRID</span>
+              <span class="site-loader__phase-state" data-phase-state>PENDING</span>
+              <span class="site-loader__phase-caret" aria-hidden="true">_</span>
+            </li>
+            <li class="site-loader__phase" data-phase-key="charging">
+              <span class="site-loader__phase-icon">[PSI]</span>
+              <span class="site-loader__phase-label">CHARGING HERO CORE</span>
+              <span class="site-loader__phase-state" data-phase-state>PENDING</span>
+              <span class="site-loader__phase-caret" aria-hidden="true">_</span>
+            </li>
+            <li class="site-loader__phase" data-phase-key="calibrating">
+              <span class="site-loader__phase-icon">[#]</span>
+              <span class="site-loader__phase-label">CALIBRATING ODOM / IMU</span>
+              <span class="site-loader__phase-state" data-phase-state>PENDING</span>
+              <span class="site-loader__phase-caret" aria-hidden="true">_</span>
+            </li>
+            <li class="site-loader__phase" data-phase-key="linking">
+              <span class="site-loader__phase-icon">[~]</span>
+              <span class="site-loader__phase-label">LINKING CHANNELS</span>
+              <span class="site-loader__phase-state" data-phase-state>PENDING</span>
+              <span class="site-loader__phase-caret" aria-hidden="true">_</span>
+            </li>
+            <li class="site-loader__phase" data-phase-key="seal">
+              <span class="site-loader__phase-icon">[O]</span>
+              <span class="site-loader__phase-label">SEAL INTEGRITY</span>
+              <span class="site-loader__phase-state" data-phase-state>PENDING</span>
+              <span class="site-loader__phase-caret" aria-hidden="true">_</span>
+            </li>
+          </ol>
+
+          <div class="site-loader__console">
+            <div class="site-loader__status">
+              <div class="site-loader__status-line" data-loader-status>RITUAL CONSOLE BOOTING...</div>
+              <div class="site-loader__status-sub">
+                CHANNEL: HERO / DRIVER / DESIGNER / BUILDER / NOTEBOOKER
+              </div>
+            </div>
+            <div class="site-loader__log" data-loader-log aria-live="polite">
+              <p class="site-loader__log-line">&gt; mount: summoning shell // pending</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="site-loader__meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div class="site-loader__meter-track">
+            <div class="site-loader__meter-fill" data-loader-bar></div>
+            <div class="site-loader__meter-glow"></div>
+          </div>
+        </div>
+
+        <button class="press-start-btn" data-press-start type="button" aria-label="Press Start to Enter">
+          <span class="press-start-btn__sigil" aria-hidden="true"></span>
+          <span class="press-start-btn__scanline" aria-hidden="true"></span>
+          <span class="press-start-btn__text">PRESS START</span>
+          <span class="press-start-btn__sub">cast enter ritual</span>
+          <span class="press-start-btn__glow" aria-hidden="true"></span>
+          <span class="press-start-btn__flash" aria-hidden="true">SEAL BREAK</span>
+        </button>
+      </div>
+    </div>
+    <script id="preload-manifest" type="application/json" set:html={assetManifest}></script>
+
+    <div id="app-shell">
+      {showQuicklink && (
+        <nav class="quicklings" aria-label="Quick links">
+          <a href="/team" class="quickling">
+            <span class="quickling__label">Meet the Team</span>
+            <span class="quickling__pulse" aria-hidden="true"></span>
+          </a>
+        </nav>
+      )}
+
+      <main class="site-main relative z-10 min-h-screen">
+        <slot />
+      </main>
+    </div>
+
+    <!-- Global Scripts: Lenis smooth scroll + GSAP ScrollTrigger integration -->
+    <script>
+      import { bootPortfolioLoader } from "../lib/portfolio-loader";
+      import { bootSpaRouter } from "../lib/spa-router";
+      import { initArcanaCursor, triggerArcanaCursorBloom } from "../scripts/cursor";
+      import { World } from "../webgl/World";
+      import Lenis from "@studio-freight/lenis";
+      import gsap from "gsap";
+      import ScrollTrigger from "gsap/ScrollTrigger";
+
+      gsap.registerPlugin(ScrollTrigger);
+
+      const manifestEl = document.getElementById("preload-manifest");
+      let assets = [];
+      if (manifestEl?.textContent) {
+        try {
+          assets = JSON.parse(manifestEl.textContent);
+        } catch (err) {
+          console.warn("[loader] Unable to parse manifest", err);
+        }
+      }
+
+      bootPortfolioLoader({
+        assets,
+        minDuration: 1400,
+      });
+
+      bootSpaRouter();
+      initArcanaCursor();
+
+      // --- Lenis & Global Effects ---
+      let lenisInstance;
+      let lenisRafId = null;
+
+      const initLenis = () => {
+        if (lenisInstance) return;
+        const lenis = new Lenis({
+          duration: 1.2,
+          smooth: true,
+          direction: "vertical",
+          gestureDirection: "vertical",
+          smoothTouch: false,
+          touchMultiplier: 2,
+        });
+        lenisInstance = lenis;
+
+        lenis.on("scroll", (e) => {
+          ScrollTrigger.update();
+          if (window.webglInstance) {
+            window.webglInstance.onScroll(e);
+          }
+        });
+
+        function raf(t) {
+          lenis.raf(t);
+          lenisRafId = requestAnimationFrame(raf);
+        }
+        lenisRafId = requestAnimationFrame(raf);
+
+        gsap.ticker.lagSmoothing(0);
+      };
+
+      let cursorSetter;
+      let rafHandle = null;
+      let cursorX = 0.5;
+      let cursorY = 0.5;
+
+      const initInteractiveBackground = () => {
+        const root = document.documentElement;
+        const bg = document.querySelector("[data-interactive-bg]");
+        if (!bg) return;
+        if (!cursorSetter) {
+          const flush = () => {
+            root.style.setProperty("--cursor-xp", `${cursorX}`);
+            root.style.setProperty("--cursor-yp", `${cursorY}`);
+            rafHandle = null;
+          };
+          cursorSetter = (x, y) => {
+            cursorX = x / window.innerWidth;
+            cursorY = y / window.innerHeight;
+            if (rafHandle === null) rafHandle = requestAnimationFrame(flush);
+          };
+          const handleMove = (e) => cursorSetter(e.clientX, e.clientY);
+          window.addEventListener("pointermove", handleMove, { passive: true });
+          window.addEventListener("pointerleave", () =>
+            cursorSetter(window.innerWidth / 2, window.innerHeight / 2)
+          );
+          window.addEventListener("resize", () =>
+            cursorSetter(window.innerWidth / 2, window.innerHeight / 2)
+          );
+        }
+        cursorSetter(window.innerWidth / 2, window.innerHeight / 2);
+        bg.classList.add("interactive-bg--ready");
+      };
+
+      // --- Heavy init: ONLY after loader "start" signal ---
+      let worldInstance;
+      let heavyInitDone = false;
+
+      const initHeavy = () => {
+        if (heavyInitDone) return;
+        heavyInitDone = true;
+
+        // Create + start World
+        worldInstance = new World();
+        worldInstance.resume(); // Explicitly start render loop
+
+        // Start Lenis smooth scroll
+        initLenis();
+
+        // Interactive background
+        initInteractiveBackground();
+      };
+
+      // Gate heavy work behind the loader's "start" signal
+      if (window.__PRIM3_LOADER_READY) {
+        // Already fired (repeat visit fast path)
+        initHeavy();
+        triggerArcanaCursorBloom(340);
+      } else {
+        window.addEventListener("site-loader:start", () => {
+          initHeavy();
+          triggerArcanaCursorBloom(340);
+        }, { once: true });
+      }
+
+      // --- SPA navigation hooks ---
+      document.addEventListener("astro:page-load", () => {
+        initArcanaCursor();
+        // Re-init interactive bg (may have new DOM after swap)
+        initInteractiveBackground();
+
+        // Resize Lenis to pick up new page dimensions
+        if (lenisInstance && lenisInstance.resize) {
+          lenisInstance.resize();
+        }
+
+        const world = window.webglInstance || worldInstance;
+        if (world) {
+          world.onNavigation(window.location.pathname);
+        }
+      });
+
+      document.addEventListener("astro:after-swap", () => {
+        // Immediately resize Lenis after DOM swap so scroll works right away
+        if (lenisInstance && lenisInstance.resize) {
+          lenisInstance.resize();
+        }
+      });
+    </script>
+  </body>
+</html>
+
+

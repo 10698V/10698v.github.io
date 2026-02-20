@@ -1,0 +1,21 @@
+{
+  "ui": {
+    "footer": {
+      "hideModelInfo": false,
+      "hideContextPercentage": false
+    },
+    "showMemoryUsage": true,
+    "showLineNumbers": true,
+    "showCitations": true,
+    "accessibility": {
+      "disableLoadingPhrases": true,
+      "screenReader": true
+    }
+  },
+  "ide": {
+    "enabled": true
+  },
+  "general": {
+    "previewFeatures": true
+  }
+}
