@@ -5,6 +5,8 @@
  * - PSI gauge + piston actuation synced to snaps
  * - forge stamp micro-event
  */
+import { FrameBudget } from "./frame-budget";
+import { registerRafLoop } from "./raf-governor";
 
 type PartKind =
   | "c_channel"
@@ -132,9 +134,17 @@ const shuffle = <T,>(items: T[]) => {
   return next;
 };
 
+type BuilderForgeOptions = {
+  onPsi?: (psi: number) => void;
+  loopId?: string;
+  fps?: number;
+  dprCaps?: number[];
+  burstFps?: number;
+};
+
 export const attachBuilderForge = (
   container: HTMLElement,
-  options: { onPsi?: (psi: number) => void } = {},
+  options: BuilderForgeOptions = {},
 ) => {
   const canvas = document.createElement("canvas");
   canvas.className = "builder-forge-canvas";
@@ -151,11 +161,20 @@ export const attachBuilderForge = (
 
   let width = 1;
   let height = 1;
-  let dpr = Math.min(window.devicePixelRatio || 1, DPR_CAP);
+  const dprCaps = options.dprCaps?.length ? options.dprCaps : [DPR_CAP, 1.25, 1.0];
+  let dprTier = 0;
+  let dpr = Math.min(window.devicePixelRatio || 1, dprCaps[dprTier] ?? DPR_CAP);
   let running = true;
-  let raf = 0;
-  let lastTs = 0;
   let lastAmbientStepTs = 0;
+  let currentLoopFps = options.fps ?? 30;
+
+  const frameBudget = new FrameBudget({
+    sampleSize: 90,
+    downshiftThresholdMs: 22,
+    restoreThresholdMs: 16.5,
+    cooldownMs: 1200,
+    maxTier: Math.max(0, dprCaps.length - 1),
+  });
 
   let loopMode: "summon" | "assemble" | "hold" = "summon";
   let summonTime = 0;
@@ -197,7 +216,7 @@ export const attachBuilderForge = (
   const resize = () => {
     width = Math.max(1, container.clientWidth);
     height = Math.max(1, container.clientHeight);
-    dpr = Math.min(window.devicePixelRatio || 1, DPR_CAP);
+    dpr = Math.min(window.devicePixelRatio || 1, dprCaps[dprTier] ?? dprCaps[dprCaps.length - 1] ?? 1.0);
     canvas.width = Math.round(width * dpr);
     canvas.height = Math.round(height * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -757,35 +776,48 @@ export const attachBuilderForge = (
     drawPsiGauge();
   };
 
-  const tick = (ts: number) => {
+  const tick = (deltaMs: number, now: number) => {
     if (!running) return;
-    if (!lastTs) {
-      lastTs = ts;
-      lastAmbientStepTs = ts;
+    if (!lastAmbientStepTs) {
+      lastAmbientStepTs = now;
     }
-    const dt = Math.min((ts - lastTs) / 1000, 0.05);
-    lastTs = ts;
+    const dt = Math.min(deltaMs / 1000, 0.05);
+    const nextTier = frameBudget.push(deltaMs, now);
+    if (nextTier !== dprTier) {
+      dprTier = nextTier;
+      resize();
+    }
 
     const hasBurst = sparks.length > 0 || rings.length > 0 || stamp.active || piston.active;
-    if (!hasBurst && ts - lastAmbientStepTs < FPS_AMBIENT_MS) {
-      raf = requestAnimationFrame(tick);
+    const burstFps = options.burstFps ?? 45;
+    const nextFps = hasBurst ? burstFps : (options.fps ?? 30);
+    if (nextFps !== currentLoopFps) {
+      currentLoopFps = nextFps;
+      loop.setFps(nextFps);
+    }
+
+    if (!hasBurst && now - lastAmbientStepTs < FPS_AMBIENT_MS) {
       return;
     }
-    lastAmbientStepTs = ts;
+    lastAmbientStepTs = now;
 
     updateLoop(dt);
     drawForge(dt);
-    raf = requestAnimationFrame(tick);
   };
 
   const ro = new ResizeObserver(() => resize());
   ro.observe(container);
   resize();
-  raf = requestAnimationFrame(tick);
+  const loop = registerRafLoop(options.loopId ?? `role-builder:${Math.random().toString(36).slice(2)}`, {
+    fps: options.fps ?? 30,
+    autoPauseOnHidden: true,
+    onTick: ({ deltaMs, now }) => tick(deltaMs, now),
+  });
+  loop.start();
 
   return () => {
     running = false;
-    cancelAnimationFrame(raf);
+    loop.destroy();
     ro.disconnect();
     canvas.remove();
   };

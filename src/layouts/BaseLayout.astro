@@ -202,6 +202,7 @@ const assetManifest = JSON.stringify(preloadTargets);
     <script>
       import { bootPortfolioLoader } from "../lib/portfolio-loader";
       import { bootSpaRouter } from "../lib/spa-router";
+      import { registerRafLoop } from "../lib/raf-governor";
       import { initArcanaCursor, triggerArcanaCursorBloom } from "../scripts/cursor";
       import { World } from "../webgl/World";
       import Lenis from "@studio-freight/lenis";
@@ -230,7 +231,7 @@ const assetManifest = JSON.stringify(preloadTargets);
 
       // --- Lenis & Global Effects ---
       let lenisInstance;
-      let lenisRafId = null;
+      let lenisLoopController = null;
 
       const initLenis = () => {
         if (lenisInstance) return;
@@ -251,11 +252,17 @@ const assetManifest = JSON.stringify(preloadTargets);
           }
         });
 
-        function raf(t) {
-          lenis.raf(t);
-          lenisRafId = requestAnimationFrame(raf);
+        if (!lenisLoopController) {
+          lenisLoopController = registerRafLoop("lenis-main", {
+            fps: 45,
+            autoPauseOnHidden: true,
+            onTick: ({ now }) => {
+              if (!lenisInstance) return;
+              lenisInstance.raf(now);
+            },
+          });
         }
-        lenisRafId = requestAnimationFrame(raf);
+        lenisLoopController.start();
 
         gsap.ticker.lagSmoothing(0);
       };

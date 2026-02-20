@@ -14,6 +14,7 @@ let roleBacksActive = false;
 let roleBacksCleanup: (() => void) | null = null;
 // Single-active-FX: only one card runs effects at a time
 let currentlyActivePause: (() => void) | null = null;
+let roleBackLoopSeq = 0;
 
 const prefersReducedMotion = () =>
   typeof window !== "undefined" &&
@@ -44,6 +45,11 @@ export const initRoleBacks = () => {
       if (!roleId) return;
       const tile = root.closest<HTMLElement>(".tile");
       if (!tile) return;
+      if (!root.dataset.loopBaseId) {
+        roleBackLoopSeq += 1;
+        root.dataset.loopBaseId = `role-back:${roleId}:${roleBackLoopSeq}`;
+      }
+      const loopBaseId = root.dataset.loopBaseId;
 
       const writers = new Map<
         string,
@@ -164,7 +170,11 @@ export const initRoleBacks = () => {
         if (inkBlotCleanup) return;
         const host = root.querySelector<HTMLElement>("[data-inkblot]");
         if (!host) return;
-        inkBlotCleanup = attachInkDrips(host);
+        inkBlotCleanup = attachInkDrips(host, {
+          loopId: `${loopBaseId}:ink`,
+          fps: 30,
+          dprCaps: [1.5, 1.25, 1.0],
+        });
       };
 
       const setBuilderTelemetry = (psiRaw: number) => {
@@ -190,7 +200,12 @@ export const initRoleBacks = () => {
           const matrixLayer = root.querySelector<HTMLElement>(".coder-matrix");
           if (!prefersReducedMotion() && canvasHost && canvasHost.clientWidth > 10) {
             requestAnimationFrame(() => {
-              matrixCleanup = attachMatrixRain(canvasHost);
+              matrixCleanup = attachMatrixRain(canvasHost, {
+                loopId: `${loopBaseId}:matrix`,
+                fps: 30,
+                dprCaps: [1.5, 1.25, 1.0],
+                enableWorker: true,
+              });
             });
           }
 
@@ -234,7 +249,11 @@ export const initRoleBacks = () => {
           const viewportHost = root.querySelector<HTMLElement>("[data-driver]");
           if (!prefersReducedMotion() && viewportHost && viewportHost.clientWidth > 10) {
             requestAnimationFrame(() => {
-              driverCleanup = attachFieldOdometry(viewportHost);
+              driverCleanup = attachFieldOdometry(viewportHost, {
+                loopId: `${loopBaseId}:driver`,
+                fps: 30,
+                dprCaps: [1.5, 1.25, 1.0],
+              });
             });
           }
 
@@ -257,6 +276,10 @@ export const initRoleBacks = () => {
             requestAnimationFrame(() => {
               builderCleanup = attachBuilderForge(assemblyHost, {
                 onPsi: setBuilderTelemetry,
+                loopId: `${loopBaseId}:builder`,
+                fps: 30,
+                burstFps: 45,
+                dprCaps: [1.5, 1.25, 1.0],
               });
             });
           }
@@ -338,7 +361,11 @@ export const initRoleBacks = () => {
           const toast = root.querySelector<HTMLElement>(".designer-toast");
           if (!prefersReducedMotion() && designerHost && designerHost.clientWidth > 10) {
             requestAnimationFrame(() => {
-              designerCleanup = attachDesignerGlyphforge(designerHost);
+              designerCleanup = attachDesignerGlyphforge(designerHost, {
+                loopId: `${loopBaseId}:designer`,
+                fps: 30,
+                dprCaps: [1.5, 1.25, 1.0],
+              });
             });
           }
           if (!designerEntrancePlayed) {
@@ -564,35 +591,7 @@ export const initRoleBacks = () => {
 
       applyState(tile.classList.contains("is-flipped"));
 
-      const handleVisibility = () => {
-        if (!active) return;
-        if (document.hidden) {
-          clearTimers();
-          writers.forEach((entry) => entry.controller.stop());
-        } else {
-          // Simplest resume without full restart of entrance animations
-          writers.forEach((entry) => entry.controller.play());
-          if (roleId === "driver") {
-            const viewport = root.querySelector<HTMLElement>(".driver-viewport");
-            const pulseSpeed = () => {
-              pulseClass(viewport, "is-boosting", 1200);
-              setTimer(pulseSpeed, randMs(5200, 1800));
-            };
-            pulseSpeed();
-          } else if (roleId === "notebooker") {
-            const ghostPage = root.querySelector<HTMLElement>(".notebook-ghostpage");
-            const loopGhostPage = () => {
-              pulseClass(ghostPage, "is-active", 1400);
-              setTimer(loopGhostPage, randMs(9500, 2400));
-            };
-            loopGhostPage();
-          }
-        }
-      };
-      document.addEventListener("visibilitychange", handleVisibility);
-
       cleanups.push(() => {
-        document.removeEventListener("visibilitychange", handleVisibility);
         stopEffects();
       });
 

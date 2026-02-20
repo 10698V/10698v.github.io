@@ -70,11 +70,16 @@ const extractDocument = (html: string) => {
 
 const STYLE_SELECTOR = "style";
 const LINK_SELECTOR = 'link[rel="stylesheet"][href]';
+const SPA_STYLE_ATTR = "data-spa-injected-style";
 
 const syncHead = (doc: Document) => {
   const newHead = doc.head;
   const currentHead = document.head;
   if (!newHead || !currentHead) return;
+
+  currentHead.querySelectorAll<HTMLStyleElement>(`style[${SPA_STYLE_ATTR}]`).forEach((el) => {
+    el.remove();
+  });
 
   const existingLinkHrefs = new Set(
     Array.from(currentHead.querySelectorAll<HTMLLinkElement>(LINK_SELECTOR)).map(
@@ -84,6 +89,7 @@ const syncHead = (doc: Document) => {
 
   newHead.querySelectorAll<HTMLStyleElement>(STYLE_SELECTOR).forEach((styleEl) => {
     const clone = styleEl.cloneNode(true) as HTMLStyleElement;
+    clone.setAttribute(SPA_STYLE_ATTR, "1");
     currentHead.appendChild(clone);
   });
 

@@ -48,6 +48,19 @@ let reflectionUniforms: any = null;
 let floorY = -3.5; // Approximate floor level, will be updated in resizeToCanvas
 export let heroTexturePromise: Promise<THREE.Texture> | null = null;
 
+const heroPerfDebug = (() => {
+  try {
+    return localStorage.getItem("__prim3_perf_debug") === "1";
+  } catch {
+    return false;
+  }
+})();
+
+const heroDebugLog = (...args: unknown[]) => {
+  if (!heroPerfDebug) return;
+  console.log(...args);
+};
+
 let IMAGE_URL = "/logo.png";
 let COLS = 28;
 let ROWS = 18;
@@ -590,12 +603,12 @@ function whenReady() {
   if (ready && mesh && explosionState.tiles.length) {
     return Promise.resolve();
   }
-  console.log("[HeroBlock] whenReady waiting...", { ready, mesh: !!mesh, tiles: explosionState.tiles.length });
+  heroDebugLog("[HeroBlock] whenReady waiting...", { ready, mesh: !!mesh, tiles: explosionState.tiles.length });
   return new Promise<void>((resolve) => readyQueue.push(resolve));
 }
 
 function syncCanvas(): boolean {
-  console.log("[HeroBlock] syncCanvas called");
+  heroDebugLog("[HeroBlock] syncCanvas called");
   // Prioritize the persisted transition canvas (DOM or global storage)
   const next = (document.getElementById("hero-transition-canvas") || (window as any).__persistedHeroCanvas || document.getElementById("hero3d")) as HeroCanvas | null;
   if (!next) {
@@ -797,7 +810,7 @@ let currentInitId = 0;
 
 function init(opts?: { startExploded?: boolean; canvas?: HTMLCanvasElement }) {
   const myId = ++currentInitId;
-  console.log("[HeroBlock] init called", { id: myId, opts, canvas, renderer: !!renderer });
+  heroDebugLog("[HeroBlock] init called", { id: myId, opts, canvas, renderer: !!renderer });
   if (opts?.canvas) {
     canvas = opts.canvas;
   } else if (!syncCanvas() || !canvas) {
@@ -820,7 +833,7 @@ function init(opts?: { startExploded?: boolean; canvas?: HTMLCanvasElement }) {
       renderer.dispose();
       renderer = null;
     } else {
-      console.log("[HeroBlock] Reusing existing renderer");
+      heroDebugLog("[HeroBlock] Reusing existing renderer");
       // Re-attach scene/camera if needed?
       // If we reused renderer, we probably reused scene/camera too unless they were nulled.
       // But disposeHero nulls them.
@@ -848,7 +861,7 @@ function init(opts?: { startExploded?: boolean; canvas?: HTMLCanvasElement }) {
     alpha: true,
     powerPreference: "high-performance", // Hint to browser
   });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
   renderer.setClearColor(0x000000, 0);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -867,11 +880,11 @@ function init(opts?: { startExploded?: boolean; canvas?: HTMLCanvasElement }) {
   // Create a promise that resolves when the texture is loaded
   if (!heroTexturePromise) {
     heroTexturePromise = new Promise((resolve) => {
-      console.log("[HeroBlock] Loading texture:", IMAGE_URL);
+      heroDebugLog("[HeroBlock] Loading texture:", IMAGE_URL);
       new THREE.TextureLoader().load(
         IMAGE_URL,
         (tex) => {
-          console.log("[HeroBlock] Texture loaded");
+          heroDebugLog("[HeroBlock] Texture loaded");
           resolve(tex);
         },
         undefined,
@@ -887,7 +900,7 @@ function init(opts?: { startExploded?: boolean; canvas?: HTMLCanvasElement }) {
 
   heroTexturePromise.then((tex) => {
     if (myId !== currentInitId) {
-      console.log("[HeroBlock] Init aborted: Stale ID", { myId, currentInitId });
+      heroDebugLog("[HeroBlock] Init aborted: Stale ID", { myId, currentInitId });
       return;
     }
     tex.colorSpace = THREE.SRGBColorSpace;
@@ -1073,10 +1086,10 @@ function init(opts?: { startExploded?: boolean; canvas?: HTMLCanvasElement }) {
 
     // GPU PRE-WARM: Compile shaders SYNCHRONOUSLY to prevent first-click lag
     // This blocks initialization but ensures GPU is fully ready before user can interact
-    console.log("[HeroBlock] Pre-compiling shaders...");
+    heroDebugLog("[HeroBlock] Pre-compiling shaders...");
     renderer!.compile(scene!, camera!);
     isShaderCompiled = true;
-    console.log("[HeroBlock] Shader compilation complete");
+    heroDebugLog("[HeroBlock] Shader compilation complete");
 
     // CRITICAL: Warmup render to force GPU buffer upload
     if (composer && scene && camera) {
@@ -1084,7 +1097,7 @@ function init(opts?: { startExploded?: boolean; canvas?: HTMLCanvasElement }) {
     } else if (renderer && scene && camera) {
       renderer.render(scene, camera);
     }
-    console.log("[HeroBlock] GPU warmup complete");
+    heroDebugLog("[HeroBlock] GPU warmup complete");
 
     shaderCompilePromise = Promise.resolve();
 
@@ -1107,9 +1120,7 @@ function animate(t = 0) {
     // If explosion just started (elapsed < 0.15s), clamp dt even more aggressively
     if (explosionState.active && explosionState.elapsed < 0.15) {
       dt = Math.min(0.016, dt); // Cap at ~60fps (16ms) for first few frames
-      if (explosionState.elapsed < 0.05) {
-        console.log("[HeroBlock] First-frame dt clamp:", dt.toFixed(4), "elapsed:", explosionState.elapsed.toFixed(4));
-      }
+      // no-op
     } else {
       dt = Math.min(0.05, dt); // Normal clamp (50ms max)
     }
@@ -1145,15 +1156,13 @@ function animate(t = 0) {
       explosionState.elapsed += dt;
 
       // DEBUG: Log delta time for first 10 frames to detect lag spikes
-      if (explosionState.elapsed < 0.2) {
-        console.log("[HeroBlock] Explosion dt:", dt.toFixed(4), "elapsed:", explosionState.elapsed.toFixed(4));
-      }
+      // no-op
 
       let progress = 0;
       if (explosionState.phase === "inflate") {
         progress = explosionState.elapsed / explosionState.inflateDuration;
         if (progress >= 1) {
-          console.log("[HeroBlock] Phase inflate -> explode");
+          heroDebugLog("[HeroBlock] Phase inflate -> explode");
           explosionState.phase = "explode";
           explosionState.elapsed = 0;
           progress = 0;
@@ -1168,7 +1177,7 @@ function animate(t = 0) {
 
         // OPTIMIZATION: Trigger reassembly slightly early (50ms before complete) for smooth overlap
         if (progress >= 0.94 && explosionState.reassemblyCallback && !explosionState.reassemblyTriggered) {
-          console.log("[HeroBlock] Early reassembly trigger for smooth transition");
+          heroDebugLog("[HeroBlock] Early reassembly trigger for smooth transition");
           explosionState.reassemblyCallback();
           explosionState.reassemblyCallback = null;
           explosionState.reassemblyTriggered = true;
@@ -1186,7 +1195,7 @@ function animate(t = 0) {
           }
           // Final fallback: Invoke reassembly callback if not already triggered
           if (explosionState.reassemblyCallback) {
-            console.log("[HeroBlock] Fallback reassembly trigger");
+            heroDebugLog("[HeroBlock] Fallback reassembly trigger");
             explosionState.reassemblyCallback();
             explosionState.reassemblyCallback = null;
           }
@@ -1246,15 +1255,6 @@ function animate(t = 0) {
       composer.render();
     } else if (renderer && scene && camera) {
       renderer.render(scene, camera);
-    }
-
-    // Robust sizing check: every ~60 frames (approx 1 sec), verify canvas matches window
-    // This fixes the "small rectangle" bug if ResizeObserver missed the layout change
-    if (renderer && Math.floor(t / 16) % 60 === 0) {
-      const { width } = getCanvasMetrics();
-      if (Math.abs(width - window.innerWidth) > 50) {
-        resizeToCanvas();
-      }
     }
 
     // Update reflection uniforms
@@ -1374,16 +1374,16 @@ function applyBalloonAmount(amount: number) {
 }
 
 function startIntroAssembly(startExploded = false) {
-  console.log("[HeroBlock] startIntroAssembly called", { startExploded, explosionActive: explosionState.active });
+  heroDebugLog("[HeroBlock] startIntroAssembly called", { startExploded, explosionActive: explosionState.active });
   // Always unlock camera when assembling (returning to banner mode)
   isCameraLocked = false;
 
   whenReady().then(() => {
-    console.log("[HeroBlock] startIntroAssembly woke up", { explosionActive: explosionState.active });
+    heroDebugLog("[HeroBlock] startIntroAssembly woke up", { explosionActive: explosionState.active });
     // RACE CONDITION FIX: If explosion started while we were waiting for ready/texture,
     // do NOT start assembly. The explosion takes precedence.
     if (explosionState.active) {
-      console.log("[HeroBlock] Aborting startIntroAssembly because explosion is active");
+      heroDebugLog("[HeroBlock] Aborting startIntroAssembly because explosion is active");
       return;
     }
 
@@ -1396,7 +1396,7 @@ function startIntroAssembly(startExploded = false) {
       return;
     }
 
-    console.log("[HeroBlock] Starting assembly animation");
+    heroDebugLog("[HeroBlock] Starting assembly animation");
     assemblyState.active = true;
     assemblyState.elapsed = 0;
     assemblyState.from = 0.95;
@@ -1407,7 +1407,7 @@ function startIntroAssembly(startExploded = false) {
 }
 
 export function disposeHero() {
-  console.log("[HeroBlock] disposeHero called", { disposed });
+  heroDebugLog("[HeroBlock] disposeHero called", { disposed });
   if (disposed) return;
   disposed = true;
   removeEvents?.();
@@ -1438,7 +1438,7 @@ export function disposeHero() {
 }
 
 function startBalloonPop(opts: BalloonPopOptions = {}) {
-  console.log("[HeroBlock] startBalloonPop called", { active: explosionState.active, shaderCompiled: isShaderCompiled, assemblyActive: assemblyState.active });
+  heroDebugLog("[HeroBlock] startBalloonPop called", { active: explosionState.active, shaderCompiled: isShaderCompiled, assemblyActive: assemblyState.active });
   if (explosionState.active) return Promise.resolve();
 
   // CRITICAL: Stop assembly IMMEDIATELY and force state to 0 to prevent race condition
@@ -1455,7 +1455,7 @@ function startBalloonPop(opts: BalloonPopOptions = {}) {
   return new Promise<void>((resolve) => {
     // CRITICAL FIX: Wait for shader compilation before starting animation
     const startAnimation = () => {
-      console.log("[HeroBlock] startBalloonPop animation starting (shaders ready)");
+      heroDebugLog("[HeroBlock] startBalloonPop animation starting (shaders ready)");
 
       // Reset timing IMMEDIATELY before animation starts to prevent delta spikes
       prevTime = performance.now();
@@ -1482,33 +1482,33 @@ function startBalloonPop(opts: BalloonPopOptions = {}) {
       explosionState.callbacks = { onExplodeStart, onComplete };
 
       explosionState.resolve = () => {
-        console.log("[HeroBlock] startBalloonPop resolved");
+        heroDebugLog("[HeroBlock] startBalloonPop resolved");
         explosionState.callbacks = {};
         resolve();
       };
 
       // Smart Start: Check where we are currently
       const current = explosionState.currentAmount || 0;
-      console.log("[HeroBlock] Smart Start Check", { current, inflateRatio: INFLATE_RATIO });
+      heroDebugLog("[HeroBlock] Smart Start Check", { current, inflateRatio: INFLATE_RATIO });
 
       if (current > 0.01) {
-        console.log("[HeroBlock] Smart Start from", current);
+        heroDebugLog("[HeroBlock] Smart Start from", current);
 
         if (current < INFLATE_RATIO) {
           explosionState.phase = "inflate";
           const progress = current / INFLATE_RATIO;
           explosionState.elapsed = progress * inflateDuration;
-          console.log("[HeroBlock] Smart Start Phase: INFLATE", { progress, elapsed: explosionState.elapsed });
+          heroDebugLog("[HeroBlock] Smart Start Phase: INFLATE", { progress, elapsed: explosionState.elapsed });
         } else {
           explosionState.phase = "explode";
           const progress = (current - INFLATE_RATIO) / (1 - INFLATE_RATIO);
           explosionState.elapsed = progress * explodeDuration;
-          console.log("[HeroBlock] Smart Start Phase: EXPLODE", { progress, elapsed: explosionState.elapsed });
+          heroDebugLog("[HeroBlock] Smart Start Phase: EXPLODE", { progress, elapsed: explosionState.elapsed });
           if (onExplodeStart) onExplodeStart();
         }
       } else {
         // Clean start
-        console.log("[HeroBlock] Clean Start");
+        heroDebugLog("[HeroBlock] Clean Start");
         explosionState.phase = "inflate";
         explosionState.elapsed = 0;
         applyBalloonAmount(0);
@@ -1529,7 +1529,7 @@ function startBalloonPop(opts: BalloonPopOptions = {}) {
 
     // If shaders not compiled yet, wait for them to prevent first-run glitch
     if (!isShaderCompiled && shaderCompilePromise) {
-      console.log("[HeroBlock] Waiting for shader compilation before starting explosion...");
+      heroDebugLog("[HeroBlock] Waiting for shader compilation before starting explosion...");
       shaderCompilePromise.then(startAnimation);
     } else {
       startAnimation();
@@ -1602,7 +1602,7 @@ function runReassembly(duration = 1.2) {
     // CRITICAL: If explosion is active, wait for it to complete first
     // Instead of polling, register a callback to avoid frame drops
     const startReassembly = () => {
-      console.log("[HeroBlock] runReassembly starting", { explosionActive: explosionState.active });
+      heroDebugLog("[HeroBlock] runReassembly starting", { explosionActive: explosionState.active });
       const start = performance.now();
 
       const tick = () => {
@@ -1626,7 +1626,7 @@ function runReassembly(duration = 1.2) {
     };
 
     if (explosionState.active) {
-      console.log("[HeroBlock] runReassembly waiting for explosion...");
+      heroDebugLog("[HeroBlock] runReassembly waiting for explosion...");
       // Register callback instead of polling to avoid frame drops
       explosionState.reassemblyCallback = startReassembly;
     } else {
@@ -1659,7 +1659,7 @@ function runToCards(opts: { targetRects?: CardRect[]; duration?: number } = {}) 
       if (uniforms) uniforms.uReassemblyMix.value = 0;
 
       unifiedAnimationState.active = true;
-      console.log("[HeroBlock] runToCards started, duration:", unifiedAnimationState.duration);
+      heroDebugLog("[HeroBlock] runToCards started, duration:", unifiedAnimationState.duration);
     });
   });
 }

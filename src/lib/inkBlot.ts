@@ -6,6 +6,8 @@
  * - random droplet sizes (small / medium / very big)
  * - splatters across the entire viewport
  */
+import { FrameBudget } from "./frame-budget";
+import { registerRafLoop } from "./raf-governor";
 
 type Drop = {
   x: number;
@@ -179,9 +181,16 @@ const pickDropRadius = () => {
   return rand(10.5, 17.8);              // very big
 };
 
+type InkDripOptions = {
+  palette?: string[];
+  loopId?: string;
+  fps?: number;
+  dprCaps?: number[];
+};
+
 export const attachInkDrips = (
   container: HTMLElement,
-  options: { palette?: string[] } = {},
+  options: InkDripOptions = {},
 ) => {
   const canvas = document.createElement("canvas");
   canvas.className = "inkdrips-canvas";
@@ -199,10 +208,18 @@ export const attachInkDrips = (
 
   let width = 1;
   let height = 1;
-  let dpr = Math.min(window.devicePixelRatio || 1, DPR_CAP);
-  let raf = 0;
-  let lastTs = 0;
+  const dprCaps = options.dprCaps?.length ? options.dprCaps : [DPR_CAP, 1.25, 1.0];
+  let dprTier = 0;
+  let dpr = Math.min(window.devicePixelRatio || 1, dprCaps[dprTier] ?? DPR_CAP);
   let running = true;
+
+  const frameBudget = new FrameBudget({
+    sampleSize: 90,
+    downshiftThresholdMs: 22,
+    restoreThresholdMs: 16.5,
+    cooldownMs: 1200,
+    maxTier: Math.max(0, dprCaps.length - 1),
+  });
 
   const drops: Drop[] = [];
   const splashes: Splash[] = [];
@@ -225,7 +242,7 @@ export const attachInkDrips = (
   const resize = () => {
     width = Math.max(1, container.clientWidth);
     height = Math.max(1, container.clientHeight);
-    dpr = Math.min(window.devicePixelRatio || 1, DPR_CAP);
+    dpr = Math.min(window.devicePixelRatio || 1, dprCaps[dprTier] ?? dprCaps[dprCaps.length - 1] ?? 1.0);
     canvas.width = Math.round(width * dpr);
     canvas.height = Math.round(height * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -522,11 +539,14 @@ export const attachInkDrips = (
     ctx.restore();
   };
 
-  const tick = (ts: number) => {
+  const tick = (deltaMs: number, now: number) => {
     if (!running) return;
-    if (!lastTs) lastTs = ts;
-    const dt = Math.min((ts - lastTs) / 1000, 0.05);
-    lastTs = ts;
+    const dt = Math.min(deltaMs / 1000, 0.05);
+    const nextTier = frameBudget.push(deltaMs, now);
+    if (nextTier !== dprTier) {
+      dprTier = nextTier;
+      resize();
+    }
 
     ctx.clearRect(0, 0, width, height);
     drawCrtBackdrop();
@@ -698,17 +718,21 @@ export const attachInkDrips = (
     while (ripples.length > 84) ripples.shift();
     while (blots.length > 42) blots.shift();
 
-    raf = requestAnimationFrame(tick);
   };
 
   const ro = new ResizeObserver(() => resize());
   ro.observe(container);
   resize();
-  raf = requestAnimationFrame(tick);
+  const loop = registerRafLoop(options.loopId ?? `role-notebooker:${Math.random().toString(36).slice(2)}`, {
+    fps: options.fps ?? 30,
+    autoPauseOnHidden: true,
+    onTick: ({ deltaMs, now }) => tick(deltaMs, now),
+  });
+  loop.start();
 
   return () => {
     running = false;
-    cancelAnimationFrame(raf);
+    loop.destroy();
     ro.disconnect();
     canvas.remove();
   };

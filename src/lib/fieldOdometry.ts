@@ -2,6 +2,8 @@
  * fieldOdometry.ts — Driver: "Aether Drivetrain Pilot"
  * VEX field grid + robot odometry path + pure-pursuit lookahead
  */
+import { FrameBudget } from "./frame-budget";
+import { registerRafLoop } from "./raf-governor";
 
 type Waypoint = { x: number; y: number };
 type RobotState = {
@@ -26,7 +28,13 @@ function generatePath(): Waypoint[] {
     return pts;
 }
 
-export const attachFieldOdometry = (container: HTMLElement) => {
+type FieldOdometryOptions = {
+    loopId?: string;
+    fps?: number;
+    dprCaps?: number[];
+};
+
+export const attachFieldOdometry = (container: HTMLElement, options: FieldOdometryOptions = {}) => {
     const canvas = document.createElement("canvas");
     canvas.className = "field-odom-canvas";
     Object.assign(canvas.style, { position: "absolute", inset: "0", width: "100%", height: "100%" });
@@ -34,9 +42,19 @@ export const attachFieldOdometry = (container: HTMLElement) => {
     if (!ctx) return () => { };
     container.appendChild(canvas);
 
+    const dprCaps = options.dprCaps?.length ? options.dprCaps : [1.5, 1.25, 1.0];
     let width = 0, height = 0;
-    let dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-    let raf = 0, last = 0, running = true;
+    let dprTier = 0;
+    let dpr = Math.min(window.devicePixelRatio || 1, dprCaps[dprTier] ?? 1.5);
+    let running = true;
+
+    const frameBudget = new FrameBudget({
+        sampleSize: 90,
+        downshiftThresholdMs: 22,
+        restoreThresholdMs: 16.5,
+        cooldownMs: 1200,
+        maxTier: Math.max(0, dprCaps.length - 1),
+    });
 
     let path = generatePath();
     let robot: RobotState = {
@@ -51,7 +69,7 @@ export const attachFieldOdometry = (container: HTMLElement) => {
     const resize = () => {
         width = container.clientWidth || 1;
         height = container.clientHeight || 1;
-        dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+        dpr = Math.min(window.devicePixelRatio || 1, dprCaps[dprTier] ?? dprCaps[dprCaps.length - 1] ?? 1.0);
         canvas.width = Math.round(width * dpr);
         canvas.height = Math.round(height * dpr);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -157,11 +175,14 @@ export const attachFieldOdometry = (container: HTMLElement) => {
         ctx.stroke();
     };
 
-    const tick = (ts: number) => {
+    const tick = (deltaMs: number, now: number) => {
         if (!running) return;
-        if (!last) last = ts;
-        const dt = Math.min((ts - last) / 1000, 0.05);
-        last = ts;
+        const dt = Math.min(deltaMs / 1000, 0.05);
+        const nextTier = frameBudget.push(deltaMs, now);
+        if (nextTier !== dprTier) {
+            dprTier = nextTier;
+            resize();
+        }
 
         // Move robot along path
         if (robot.targetIdx < path.length) {
@@ -217,17 +238,21 @@ export const attachFieldOdometry = (container: HTMLElement) => {
         drawRobot();
         drawRecalcFlash();
 
-        raf = requestAnimationFrame(tick);
     };
 
     const ro = new ResizeObserver(() => resize());
     ro.observe(container);
     resize();
-    raf = requestAnimationFrame(tick);
+    const loop = registerRafLoop(options.loopId ?? `role-driver:${Math.random().toString(36).slice(2)}`, {
+        fps: options.fps ?? 30,
+        autoPauseOnHidden: true,
+        onTick: ({ deltaMs, now }) => tick(deltaMs, now),
+    });
+    loop.start();
 
     return () => {
         running = false;
-        cancelAnimationFrame(raf);
+        loop.destroy();
         ro.disconnect();
         canvas.remove();
     };

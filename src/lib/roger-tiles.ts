@@ -5,6 +5,7 @@ import {
     CanvasTexture, Vector2, WebGLRenderTarget, RGBAFormat, UnsignedByteType, HalfFloatType,
     LinearFilter, ClampToEdgeWrapping, SRGBColorSpace, NoToneMapping, NearestFilter
 } from "three";
+import { registerRafLoop, type RafLoopController } from "./raf-governor";
 
 /** device pixel ratio cap for perf */
 const DPR = Math.min((window as any).__PRIM3_RIPPLE_DPR || window.devicePixelRatio || 1, 1.35);
@@ -257,7 +258,6 @@ class RippleSim {
 const FLOW_SIZE = 160;
 const POINTER_VISCOSITY = 0.52;
 const POINTER_MIN_SPEED = 0.0015;
-const FRAME_INTERVAL = 1000 / 60; // keep motion fluid at 60fps without pausing
 
 // draw <img> into a canvas ? CanvasTexture
 const PIXEL_BASE = 1024; // cap resolution for ripple texture while keeping clarity
@@ -306,58 +306,116 @@ type TileState = {
     last: Vector2;
     hovered: boolean;
     lastFrame: number;
+    inView: boolean;
+    bounds: {
+        left: number;
+        top: number;
+        width: number;
+        height: number;
+    };
 };
 
 const tileInstances: TileState[] = [];
+const tileByWrap = new WeakMap<HTMLElement, TileState>();
 let rogerHooked = false;
-let tilesTicker = 0;
-let tickerRunning = false;
+let tilesController: RafLoopController | null = null;
+let tilesFps = 30;
+let idleSince = 0;
+let tileViewportObserver: IntersectionObserver | null = null;
 
 function ensureTilesTicker() {
-    if (tickerRunning) return;
-    tickerRunning = true;
     const IDLE_THRESHOLD = 2000; // 2s with no interaction = idle, skip render
-    const tick = (time: number) => {
-        if (!tickerRunning) return;
-        if (tileInstances.length === 0) {
-            tickerRunning = false;
-            tilesTicker = 0;
-            return;
-        }
-        const now = time || performance.now();
-        for (let i = 0; i < tileInstances.length; i++) {
-            const st = tileInstances[i];
-            if (!st) continue;
-            // Skip flipped tiles — back face is showing, no ripple needed
-            if (st.tile?.classList.contains("is-flipped")) {
-                st.hovered = false;
-                st.wrap?.classList.remove("is-ripple-hover");
-                if (st.img) {
-                    st.img.style.visibility = "";
-                    st.img.style.opacity = "";
+    if (!tilesController) {
+        tilesController = registerRafLoop("roger-tiles", {
+            fps: 30,
+            autoPauseOnHidden: true,
+            onTick: ({ now }) => {
+                if (tileInstances.length === 0) return;
+
+                let activeCount = 0;
+                let hoveredCount = 0;
+                for (let i = 0; i < tileInstances.length; i++) {
+                    const st = tileInstances[i];
+                    if (!st || !st.inView) continue;
+
+                    // Skip flipped tiles — back face is showing, no ripple needed
+                    if (st.tile?.classList.contains("is-flipped")) {
+                        st.hovered = false;
+                        st.wrap?.classList.remove("is-ripple-hover");
+                        if (st.img) {
+                            st.img.style.visibility = "";
+                            st.img.style.opacity = "";
+                        }
+                        continue;
+                    }
+
+                    // Skip idle tiles — not hovered and last frame was >2s ago
+                    if (!st.hovered && st.lastFrame && (now - st.lastFrame > IDLE_THRESHOLD)) continue;
+
+                    activeCount += 1;
+                    if (st.hovered) hoveredCount += 1;
+                    st.sim.step();
+                    st.uniforms.uHeight.value = st.sim.texture();
+                    st.uniforms.uTime.value = now * 0.001;
+                    st.renderer.render(st.scene, st.cam);
+                    st.lastFrame = now;
                 }
-                continue;
+
+                const nextFps = hoveredCount > 0 ? 45 : 30;
+                if (nextFps !== tilesFps) {
+                    tilesFps = nextFps;
+                    tilesController?.setFps(nextFps);
+                }
+
+                if (activeCount === 0) {
+                    if (!idleSince) idleSince = now;
+                    if (now - idleSince > IDLE_THRESHOLD) {
+                        tilesController?.stop();
+                    }
+                } else {
+                    idleSince = 0;
+                }
             }
-            // Skip idle tiles — not hovered and last frame was >2s ago
-            if (!st.hovered && st.lastFrame && (now - st.lastFrame > IDLE_THRESHOLD)) continue;
-            if (!st.lastFrame || now - st.lastFrame >= FRAME_INTERVAL) {
-                st.sim.step();
-                st.uniforms.uHeight.value = st.sim.texture();
-                st.uniforms.uTime.value = now * 0.001;
-                st.renderer.render(st.scene, st.cam);
-                st.lastFrame = now;
-            }
-        }
-        tilesTicker = requestAnimationFrame(tick);
-    };
-    tilesTicker = requestAnimationFrame(tick);
+        });
+    }
+    if (!tilesController.isRunning()) {
+        idleSince = 0;
+        tilesController.start();
+    }
 }
 
 function stopTilesTickerIfIdle() {
-    if (!tickerRunning || tileInstances.length > 0) return;
-    cancelAnimationFrame(tilesTicker);
-    tilesTicker = 0;
-    tickerRunning = false;
+    if (!tilesController || tileInstances.length > 0) return;
+    tilesController.destroy();
+    tilesController = null;
+    tilesFps = 30;
+    idleSince = 0;
+    tileViewportObserver?.disconnect();
+    tileViewportObserver = null;
+}
+
+function wakeTilesTicker() {
+    if (tileInstances.length === 0) return;
+    ensureTilesTicker();
+}
+
+function ensureTileViewportObserver() {
+    if (tileViewportObserver || typeof IntersectionObserver === "undefined") return;
+    tileViewportObserver = new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+            const target = entry.target as HTMLElement;
+            const st = tileByWrap.get(target);
+            if (!st) continue;
+            st.inView = entry.isIntersecting;
+            if (entry.isIntersecting) {
+                st.lastFrame = performance.now();
+                wakeTilesTicker();
+            }
+        }
+    }, {
+        root: null,
+        threshold: 0.05,
+    });
 }
 
 // tiny helper
@@ -578,6 +636,13 @@ function makeTile(wrap: HTMLElement, img: HTMLImageElement) {
     st.tile = wrap.closest(".tile");
     st.last = new Vector2(0.5, 0.5);
     st.lastFrame = 0;
+    st.inView = true;
+    st.bounds = {
+        left: 0,
+        top: 0,
+        width: 1,
+        height: 1,
+    };
 
     img.style.transition = img.style.transition || "opacity 0.2s ease";
 
@@ -590,6 +655,10 @@ function makeTile(wrap: HTMLElement, img: HTMLImageElement) {
 
     const rect = wrap.getBoundingClientRect();
     st.renderer.setSize(rect.width, rect.height, false);
+    st.bounds.left = rect.left;
+    st.bounds.top = rect.top;
+    st.bounds.width = Math.max(1, rect.width);
+    st.bounds.height = Math.max(1, rect.height);
     Object.assign(st.renderer.domElement.style, { position: "absolute", inset: "0", width: "100%", height: "100%" });
     wrap.appendChild(st.renderer.domElement);
 
@@ -637,21 +706,29 @@ function makeTile(wrap: HTMLElement, img: HTMLImageElement) {
     st.scene.add(quad);
 
     const el = st.renderer.domElement;
-    const toUV = (e: PointerEvent) => {
+    const updateBounds = () => {
         const b = el.getBoundingClientRect();
-        const x = (e.clientX - b.left) / b.width;
-        const y = 1 - (e.clientY - b.top) / b.height;
+        st.bounds.left = b.left;
+        st.bounds.top = b.top;
+        st.bounds.width = Math.max(1, b.width);
+        st.bounds.height = Math.max(1, b.height);
+    };
+    const toUV = (e: PointerEvent) => {
+        const x = (e.clientX - st.bounds.left) / st.bounds.width;
+        const y = 1 - (e.clientY - st.bounds.top) / st.bounds.height;
         return new Vector2(x, y);
     };
 
     el.addEventListener("pointerenter", (e: PointerEvent) => {
         if (st.tile?.classList.contains("is-flipped")) return;
+        updateBounds();
         wrap.classList.add("is-ripple-hover");
         st.hovered = true;
         st.last.copy(toUV(e));
         st.uniforms.uPointer.value.copy(st.last);
         st.sim.addDrop(st.last, 0.035, 0.14);
         warpFromUV(wrap, st.last, 0.24);
+        wakeTilesTicker();
     });
 
     el.addEventListener("pointermove", (e: PointerEvent) => {
@@ -670,6 +747,7 @@ function makeTile(wrap: HTMLElement, img: HTMLImageElement) {
         } else {
             st.last.lerp(uv, POINTER_VISCOSITY);
         }
+        wakeTilesTicker();
     }, { passive: true });
 
     el.addEventListener("pointerleave", () => {
@@ -683,10 +761,14 @@ function makeTile(wrap: HTMLElement, img: HTMLImageElement) {
     st.ro = new ResizeObserver(() => {
         const r = wrap.getBoundingClientRect();
         st.renderer.setSize(r.width, r.height, false);
+        updateBounds();
         st.renderer.getDrawingBufferSize(dbuf);
         (st.uniforms.uTexScale.value as Vector2).set(...coverScale(img.naturalWidth, img.naturalHeight, dbuf.x, dbuf.y));
     });
     st.ro.observe(wrap);
+    ensureTileViewportObserver();
+    tileByWrap.set(wrap, st);
+    tileViewportObserver?.observe(wrap);
 
     // render an initial frame before hiding the fallback img
     try {
@@ -716,6 +798,8 @@ function makeTile(wrap: HTMLElement, img: HTMLImageElement) {
 
 function disposeTile(st: TileState) {
     try { st.ro?.disconnect(); } catch { }
+    tileViewportObserver?.unobserve(st.wrap);
+    tileByWrap.delete(st.wrap);
     st.sim?.dispose();
     st.renderer?.dispose();
     st.scene?.clear();

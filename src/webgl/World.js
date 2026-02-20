@@ -4,6 +4,8 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { registerRafLoop } from '../lib/raf-governor.ts';
+import { FrameBudget } from '../lib/frame-budget.ts';
 
 const FilmGrainShader = {
     uniforms: {
@@ -52,7 +54,16 @@ export class World {
         this.container = document.querySelector('#webgl-overlay');
         this.width = window.innerWidth;
         this.height = window.innerHeight;
-        this.pixelRatio = Math.min(window.devicePixelRatio, 1.5); // Clamped harder for perf
+        this.qualityTier = 0;
+        this.dprCaps = [1.5, 1.25, 1.0];
+        this.frameBudget = new FrameBudget({
+            sampleSize: 90,
+            downshiftThresholdMs: 22,
+            restoreThresholdMs: 16.5,
+            cooldownMs: 1200,
+            maxTier: 2,
+        });
+        this.pixelRatio = Math.min(window.devicePixelRatio, this.dprCaps[this.qualityTier] || 1.5);
 
         this.scene = new THREE.Scene();
         this.camera = new THREE.PerspectiveCamera(75, this.width / this.height, 0.1, 100);
@@ -74,9 +85,13 @@ export class World {
             this.container.appendChild(this.renderer.domElement);
         }
 
-        this.clock = new THREE.Clock();
         this.isPlaying = false; // Start paused — caller starts via resume()
-        this._rafId = null;
+        this.elapsedTime = 0;
+        this.loopController = registerRafLoop('world-render', {
+            fps: 45,
+            autoPauseOnHidden: true,
+            onTick: ({ deltaMs, now }) => this._renderLoop(deltaMs, now),
+        });
 
         this.cubeGrid = new CubeGrid(this.scene);
 
@@ -126,22 +141,32 @@ export class World {
     onResize() {
         this.width = window.innerWidth;
         this.height = window.innerHeight;
-        this.pixelRatio = Math.min(window.devicePixelRatio, 1.5);
+        this.applyPixelRatio();
 
         this.camera.aspect = this.width / this.height;
         this.camera.updateProjectionMatrix();
 
         this.renderer.setSize(this.width, this.height);
+        this.composer.setSize(this.width, this.height);
+    }
+
+    applyPixelRatio() {
+        const cap = this.dprCaps[this.qualityTier] ?? 1.0;
+        const next = Math.min(window.devicePixelRatio || 1, cap);
+        if (Math.abs(next - this.pixelRatio) < 0.001) return;
+        this.pixelRatio = next;
         this.renderer.setPixelRatio(this.pixelRatio);
+        this.renderer.setSize(this.width, this.height, false);
         this.composer.setSize(this.width, this.height);
     }
 
     onNavigation(route) {
-        console.log(`[World] Navigated to: ${route}`);
         if (route === '/' || route === '') {
             this.cubeGrid.animateTo('GRID');
+            this.loopController.setFps(45);
         } else {
             this.cubeGrid.animateTo('CARD');
+            this.loopController.setFps(30);
         }
     }
 
@@ -154,25 +179,27 @@ export class World {
     resume() {
         if (this.isPlaying) return;
         this.isPlaying = true;
-        this.clock.start();
-        this._rafId = requestAnimationFrame(this._renderLoop.bind(this));
+        this.loopController.start();
     }
 
     /** Pause the render loop */
     pause() {
         if (!this.isPlaying) return;
         this.isPlaying = false;
-        this.clock.stop();
-        if (this._rafId !== null) {
-            cancelAnimationFrame(this._rafId);
-            this._rafId = null;
-        }
+        this.loopController.stop();
     }
 
-    _renderLoop() {
+    _renderLoop(deltaMs) {
         if (!this.isPlaying) return;
 
-        const time = this.clock.getElapsedTime();
+        const clampedMs = Math.min(250, Math.max(1, deltaMs));
+        this.elapsedTime += clampedMs / 1000;
+        const time = this.elapsedTime;
+        const nextTier = this.frameBudget.push(clampedMs);
+        if (nextTier !== this.qualityTier) {
+            this.qualityTier = nextTier;
+            this.applyPixelRatio();
+        }
 
         if (this.cubeGrid) {
             this.cubeGrid.update(time);
@@ -187,8 +214,6 @@ export class World {
         }
 
         this.composer.render();
-
-        this._rafId = requestAnimationFrame(this._renderLoop.bind(this));
     }
 
     // Keep old render() as alias for resume() for compat
@@ -198,6 +223,7 @@ export class World {
 
     dispose() {
         this.pause();
+        this.loopController.destroy();
         if (this._onResize) window.removeEventListener('resize', this._onResize);
         if (this._onVisibility) document.removeEventListener('visibilitychange', this._onVisibility);
         this.renderer.dispose();
