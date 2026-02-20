@@ -2504,6 +2504,7 @@ html.arcana-cursor-enabled.arcana-cursor-input [contenteditable] {
     linear-gradient(90deg, rgba(120, 170, 255, 0.06) 1px, transparent 1px);
   background-size: 44px 44px;
   opacity: 0.24;
+  pointer-events: none;
 }
 
 .site-loader__backdrop::after {
@@ -2513,6 +2514,7 @@ html.arcana-cursor-enabled.arcana-cursor-input [contenteditable] {
   background: linear-gradient(180deg, transparent, rgba(114, 231, 255, 0.06), transparent);
   animation: loaderScanDrift 7.8s linear infinite;
   opacity: 0.32;
+  pointer-events: none;
 }
 
 @keyframes loaderScanDrift {
@@ -2543,6 +2545,11 @@ html.arcana-cursor-enabled.arcana-cursor-input [contenteditable] {
 .site-loader__panel::before {
   background-size: 28px 28px;
   opacity: 0.1;
+  pointer-events: none;
+}
+
+.site-loader__panel::after {
+  pointer-events: none;
 }
 
 .site-loader__panel.is-phase-flip {
@@ -2577,6 +2584,7 @@ html.arcana-cursor-enabled.arcana-cursor-input [contenteditable] {
   background: linear-gradient(180deg, rgba(8, 24, 42, 0.76), rgba(4, 12, 26, 0.92));
   box-shadow: inset 0 0 24px rgba(70, 180, 255, 0.2), 0 0 26px rgba(30, 168, 255, 0.18);
   overflow: hidden;
+  pointer-events: none;
 }
 
 .site-loader__relic-core {
@@ -2824,6 +2832,8 @@ html.arcana-cursor-enabled.arcana-cursor-input [contenteditable] {
   overflow: hidden;
   cursor: pointer;
   outline: none;
+  pointer-events: auto;
+  touch-action: manipulation;
   transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 

@@ -13,15 +13,17 @@ const cache = new Map<string, string>();
 let isNavigating = false;
 let routerBooted = false;
 let linkListenerBound = false;
+let queuedNavigation: { href: string; opts: NavigateOptions } | null = null;
 
 const normalizePath = (pathname: string) => {
   if (!pathname) return "/";
   return pathname.startsWith("/") ? pathname : `/${pathname}`;
 };
 
-const isHomeRoute = (pathname: string) => pathname === "/" || pathname === "/index.html";
+const isHomeRoute = (pathname: string) =>
+  pathname === "/" || pathname === "/index" || pathname === "/index.html";
 const isTeamRoute = (pathname: string) =>
-  pathname === "/team" || pathname === "/team/" || pathname === "/team/index.html";
+  pathname === "/team" || pathname === "/team/" || pathname === "/team/index" || pathname === "/team/index.html";
 
 const cacheKeysForPath = (pathname: string, search = "") => {
   const path = normalizePath(pathname);
@@ -170,7 +172,10 @@ export async function navigateSoft(href: string, opts: NavigateOptions = {}) {
     window.location.href = href;
     return;
   }
-  if (isNavigating) return;
+  if (isNavigating) {
+    queuedNavigation = { href, opts };
+    return;
+  }
 
   const url = new URL(href, window.location.href);
   const pathname = normalizePath(url.pathname);
@@ -210,6 +215,16 @@ export async function navigateSoft(href: string, opts: NavigateOptions = {}) {
     window.location.href = href;
   } finally {
     isNavigating = false;
+    const queued = queuedNavigation;
+    queuedNavigation = null;
+    if (queued) {
+      const current = `${normalizePath(window.location.pathname)}${window.location.search}`;
+      const targetUrl = new URL(queued.href, window.location.href);
+      const target = `${normalizePath(targetUrl.pathname)}${targetUrl.search}`;
+      if (current !== target || queued.opts.replaceState) {
+        void navigateSoft(target, queued.opts);
+      }
+    }
   }
 }
 

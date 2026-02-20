@@ -30,6 +30,15 @@ const prefersReducedMotion = () =>
   typeof matchMedia === "function" &&
   matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+const isLoaderReady = () => {
+  if (typeof window === "undefined" || typeof document === "undefined") return true;
+  if (window.__PRIM3_LOADER_READY) return true;
+  if (document.body?.dataset.loaderState === "done") return true;
+  const loader = document.querySelector<HTMLElement>("[data-site-loader]");
+  if (!loader) return true;
+  return loader.dataset.active !== "true";
+};
+
 const markFromHero = () => {
   try {
     window.sessionStorage.setItem("__prim3_from_hero__", "1");
@@ -86,10 +95,17 @@ function requestHeroAssembly() {
 
 function waitForLoaderAndAssemble() {
   const trigger = () => requestHeroAssembly();
-  if (window.__PRIM3_LOADER_READY) {
+  if (isLoaderReady()) {
     trigger();
   } else {
-    window.addEventListener("site-loader:start", trigger, { once: true });
+    let fired = false;
+    const runOnce = () => {
+      if (fired) return;
+      fired = true;
+      trigger();
+    };
+    window.addEventListener("site-loader:start", runOnce, { once: true });
+    window.setTimeout(runOnce, 900);
   }
 }
 
@@ -238,10 +254,18 @@ function bootHeroModule() {
     });
   };
 
-  if (window.__PRIM3_LOADER_READY) {
+  if (isLoaderReady()) {
     run();
   } else {
-    window.addEventListener("site-loader:start", run, { once: true });
+    let booted = false;
+    const runOnce = () => {
+      if (booted) return;
+      booted = true;
+      run();
+    };
+    window.addEventListener("site-loader:start", runOnce, { once: true });
+    // Fallback for SPA/back-nav race where loader event was already consumed.
+    window.setTimeout(runOnce, 900);
   }
 }
 

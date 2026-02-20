@@ -317,10 +317,30 @@ export function bootPortfolioLoader(options: LoaderOptions = {}): void {
 
     if (pressStartBtn) {
       pressStartBtn.classList.add("is-visible", "is-ignite");
+      pressStartBtn.removeAttribute("disabled");
+      pressStartBtn.setAttribute("aria-disabled", "false");
       window.setTimeout(() => pressStartBtn.classList.remove("is-ignite"), 680);
     }
 
+    let activated = false;
+    let keyTimer = 0;
+
+    const cleanupListeners = () => {
+      if (!pressStartBtn) return;
+      pressStartBtn.removeEventListener("pointerup", onPointerActivate);
+      pressStartBtn.removeEventListener("click", onClickActivate);
+      pressStartBtn.removeEventListener("keydown", onButtonKey);
+      window.removeEventListener("keydown", onWindowKey);
+      if (keyTimer) {
+        window.clearTimeout(keyTimer);
+        keyTimer = 0;
+      }
+    };
+
     const onActivate = () => {
+      if (activated) return;
+      activated = true;
+      cleanupListeners();
       if (pressStartBtn) {
         pressStartBtn.classList.add("is-casting");
         castTimer = window.setTimeout(() => {
@@ -332,16 +352,39 @@ export function bootPortfolioLoader(options: LoaderOptions = {}): void {
       }
     };
 
-    pressStartBtn?.addEventListener("click", onActivate, { once: true });
+    const onPointerActivate = (e: PointerEvent) => {
+      e.preventDefault();
+      onActivate();
+    };
 
-    const onKey = (e: KeyboardEvent) => {
+    const onClickActivate = (e: MouseEvent) => {
+      e.preventDefault();
+      onActivate();
+    };
+
+    const onButtonKey = (e: KeyboardEvent) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
-        window.removeEventListener("keydown", onKey);
         onActivate();
       }
     };
-    window.addEventListener("keydown", onKey);
+
+    const onWindowKey = (e: KeyboardEvent) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      if (document.body?.dataset.loaderState !== "armed") return;
+      e.preventDefault();
+      onActivate();
+    };
+
+    pressStartBtn?.addEventListener("pointerup", onPointerActivate);
+    pressStartBtn?.addEventListener("click", onClickActivate);
+    pressStartBtn?.addEventListener("keydown", onButtonKey);
+
+    // Keep keyboard activation available even when focus is not on the button.
+    // Delay the global listener one tick so it does not steal the same key used to arm.
+    keyTimer = window.setTimeout(() => {
+      window.addEventListener("keydown", onWindowKey);
+    }, 0);
   };
 
   const prefersReduced =

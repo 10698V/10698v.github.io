@@ -7,9 +7,10 @@ let gsapLoader: Promise<{ gsap: any; ScrollTrigger: any }> | null = null;
 let scrollTriggerRegistered = false;
 let idlePrefetchScheduled = false;
 let homeCleanupBound = false;
+let homePageShowBound = false;
 
 export function isHomeRoute(pathname: string = typeof window !== "undefined" ? window.location.pathname : "") {
-  return pathname === "/" || pathname === "/index.html";
+  return pathname === "" || pathname === "/" || pathname === "/index" || pathname === "/index.html";
 }
 
 async function loadGsap() {
@@ -80,6 +81,14 @@ async function runHomeScripts(opts?: { fromTeam?: boolean }) {
   if (!homeCleanupBound) {
     document.addEventListener("astro:before-swap", cleanupHome);
     homeCleanupBound = true;
+  }
+
+  if (!homePageShowBound) {
+    window.addEventListener("pageshow", () => {
+      if (!isHomeRoute()) return;
+      requestAnimationFrame(() => initHeroStage());
+    });
+    homePageShowBound = true;
   }
 
   initHeroStage();
